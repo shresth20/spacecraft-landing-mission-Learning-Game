@@ -455,7 +455,15 @@
       camStop(p.el);
       var val = valueOf(p, st, v);
       p.el.style.transformOrigin = '0 0';
-      p.el.style.willChange = p.kind === 'haze' ? 'opacity' : 'transform';
+      /* The haze parked on the ground is fully transparent, and a
+         will-change: opacity on it would keep a full-frame gradient
+         rasterised and held in GPU memory for the whole task --
+         Chrome keeps hinted layers drawn at opacity 0. It is let go
+         there; camFly hints it again as the lens lifts, and it lifts
+         from 0, so nothing visible waits on its raster. */
+      p.el.style.willChange = p.kind === 'haze'
+        ? (+val.opacity > 0 ? 'opacity' : '')
+        : 'transform';
       if (val.transform != null) p.el.style.transform = val.transform;
       if (val.opacity != null) p.el.style.opacity = val.opacity;
     });

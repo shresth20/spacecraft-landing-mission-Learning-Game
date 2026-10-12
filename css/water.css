@@ -416,13 +416,23 @@
    distance in `rollTravel` and the two have to stay equal for the
    loop to be invisible.
 
-   Oversized by 60% on every side, like the caustics: the sheets
-   travel, and a sheet exactly the size of the frame would walk
-   its own edge into shot. Nothing here needs `overflow` — .stage
-   is `overflow: clip` at exactly one screen.
+   Oversized by ONE WAVELENGTH on every side: a sheet travels
+   exactly `--p` and back, so that is all the margin it can ever
+   walk into shot (the screen's own transitions only scale it UP,
+   which moves its edges further out). It used to be 60% on every
+   side, which made each sheet 2.2 frames square — at 2x that is
+   a 6336x3960 texture per sheet, three of them, all moving, and
+   more raster than a laptop GPU's tile budget holds alongside
+   everything else on the screen: the tiles that miss their frame
+   are the patches and the dropped frames over the sea. The
+   stops and the travel are absolute lengths, so the pattern,
+   its speed and the seamless loop are unchanged; only the
+   unseen margin went. The extra 1vmin is rounding slack.
+   Nothing here needs `overflow` — .stage is `overflow: clip` at
+   exactly one screen.
    ============================================================ */
 .sea__roll {
-  inset: -60%;
+  inset: calc(-1vmin - var(--p));
   will-change: transform;
 }
 
@@ -785,7 +795,6 @@
   border-radius: 50%;
   background: rgba(var(--sea-foam), .34);
   opacity: 0;
-  will-change: transform, opacity;
 }
 
 @keyframes bubble {
@@ -821,7 +830,6 @@
   transform: translate(-50%, -50%) scale(1);
   opacity: 0;
   pointer-events: none;
-  will-change: transform, opacity;
 }
 
 /* DASHED, in long uneven runs, and this is the one thing that
@@ -988,6 +996,20 @@
 .pad.is-up .spray i {
   animation: bubble var(--bt, 3.4s) ease-out var(--bd, 0s) infinite;
 }
+
+/* The ripples and the bubbles are promoted when their island
+   SURFACES, not from the moment the screen is built. Nine dots and
+   three outlines an island, on every island of every site in the
+   camera plate, was ~250 layers held before a single island was up
+   — and every one of them made the shore, the shock and the islets
+   above it composite too, for overlap — while the screen swapped
+   in and the lens loitered. Hinted here, they still get their
+   layer and their raster in the delay before their loop starts
+   (1.2s for the first ripple), so the loop never starts cold. */
+.zone.is-up .spray i,
+.pad.is-up .spray i,
+.zone.is-up .lap,
+.pad.is-up .lap { will-change: transform, opacity; }
 
 @keyframes shoreWell {
   0%   { transform: scale(.86); opacity: 0; }
