@@ -92,10 +92,8 @@
   function reducedMotion() { return reduced; }
 
   /* ---------- the bridge to the game's pacing ---------- */
-  var readToken = function () { return 0; };
   var readFast  = function () { return false; };
   function bind(hooks) {
-    if (hooks && typeof hooks.token === 'function') readToken = hooks.token;
     if (hooks && typeof hooks.fast  === 'function') readFast  = hooks.fast;
   }
 
@@ -639,7 +637,6 @@
      it, or until guideLine.stop() confirms the line. */
   function guideLine(el, vars) {
     if (!el) return null;
-    var len = pathLength(el) || 12;
     el.style.strokeDasharray = '6 6';
     var tl = timeline({
       revert: function () { el.style.strokeDasharray = ''; el.style.strokeDashoffset = ''; }

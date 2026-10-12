@@ -15,11 +15,15 @@
      voice
    · everything playing is paused when the tab is hidden and
      picked up again on return (see js/lifecycle.js)
-   · every clip is Ogg Opus (Chrome, Edge, Firefox, and Safari 17+).
-     The start gate fetches them all up front (js/preload.js) and
-     hands each one in as a blob: URL through adopt(), so the first
-     play() of any line reads from memory; a clip whose blob fails
-     falls back to its file URL once and carries on
+   · every clip is Ogg Opus or WebM Opus (Chrome, Edge, Firefox, and
+     Safari 17+). The start gate fetches them all up front
+     (js/preload.js) and hands each one in as a blob: URL through
+     adopt(), so the first play() of any line reads from memory; a
+     clip whose blob fails falls back to its file URL once and
+     carries on
+   · the voice lines are keyed, and their files are named by the
+     locale's voice pack (locales/locales.json), so the narration
+     and the words on screen share one name -- see voiceSrc()
    ============================================================ */
 
 (function (global) {
@@ -34,42 +38,19 @@
     global.location.protocol === 'http:' ||
     global.location.protocol === 'https:';
 
-  var VOICE = {
-    welcome:  'Welcome, Space Commander! We have a new landing mission.ogg',
-    safePlace:'We need to find a safe place for it to land.ogg',
-    sendDrone:'Let’s send the survey drone to check the area.ogg',
-    clickLaunch:'Click the launch button to launch the drone.ogg',
-    tooDark:  'It is too dark to see the landing zones.ogg',
-    startScan:'Start the scanner to search the area.ogg',
-    foundZones:'Great! The scanner found several landing zones..ogg',
-    lookShapes:'Look at the shapes of the landing zones.ogg',
-    pickTriangles:'The spaceship is a triangle. Select all the triangular landing zones.ogg',
-    shapeMatch:'Correct! These landing zones have the same shape as the spaceship.ogg',
-    tryAgain: 'Try again.ogg',
-    spaceNeeded:'Next, we need to find how much space the spaceship needs.ogg',
-    calcArea: 'Calculate the area of spaceship, And select the land with required area.ogg',
-    chooseExact:'Choose the landing zone with the exact area.ogg',
-    tooSmall: 'This landing zone is too small. The spaceship cannot fit safely.ogg',
-    tooLarge: 'This landing zone is too large. Try to find the exact match.ogg',
-    perfectFit:'Perfect match! The spaceship fits exactly.ogg',
-    landed:   'Landing successful! Great work, Space Commander.ogg',
-
-    /* screens 4-8 (js/pages.js) run the survey feed's shape task and
-       the landing's area task back to back on one screen, so they
-       need one line the earlier screens never had: the hand-off from
-       the first task to the second. These two were recorded with the
-       rest and had nowhere to go until now.
-
-       The line that NAMES the shape is deliberately not here. It
-       says something different on each of the five screens ("the
-       spaceship is a square", "... a rhombus") and there is no clip
-       for any of them, so narrate() types it at the typewriter's own
-       reading rate instead. Record them, add them here under the
-       keys pages.js asks for, and they start speaking with no other
-       change — see narrate() in js/script.js. */
-    onlyMatching:'Now we only need to check these matching landing zones.ogg',
-    findArea: 'Find the area of spaceship, And select the suitable land.ogg'
-  };
+  /* The narration is KEYED: a line and its clip share one name, and
+     the clip's file is named by the locale's voice pack
+     (locales/locales.json -> voiceOver.<lang>.files), looked up
+     through I18n.voiceKey(key). A key the pack has no file for has
+     no voice, and narrate() in js/script.js types it at reading rate
+     instead -- so a line can be written, keyed and played before it
+     is recorded, and starts speaking the moment its clip is added
+     to the pack. */
+  function voiceSrc(key) {
+    var I = global.I18n;
+    var u = I && I.voiceKey ? I.voiceKey(key) : null;
+    return u ? encodeURI(u) : null;
+  }
 
   var SFX = {
     launch:  'drone-launch.ogg',
@@ -119,10 +100,11 @@
   var held = [];                // what we paused when the tab went away
 
   /* ---------------------------------------------------------- helpers */
-  var local = {};               // file -> blob: URL, from the start gate
+  var local = {};               // remote URL -> blob: URL, from the start gate
 
+  /* a sound effect's own URL; the voices' come from the pack */
   function remote(file) { return encodeURI(DIR + file); }
-  function url(file) { return local[file] || remote(file); }
+  function url(src) { return local[src] || src; }
 
   /* One-time fallback for an element playing from a blob: URL. If
      the blob fails — revoked, refused, out of memory — the element
@@ -132,18 +114,18 @@
 
      Registered at construction so it runs BEFORE their own error
      listeners (listeners fire in the order they were added). */
-  function guard(el, file) {
+  function guard(el, src) {
     el.addEventListener('error', function onErr() {
       el.removeEventListener('error', onErr);
-      if (!local[file] || el.src !== local[file]) return;   /* not the blob's fault */
+      if (!local[src] || el.src !== local[src]) return;   /* not the blob's fault */
 
       var playing = !el.paused && !el.ended;
       var at = el.currentTime;
-      delete local[file];                 /* nobody else adopts a dead blob */
+      delete local[src];                  /* nobody else adopts a dead blob */
 
       el._geoRecover = true;              /* for the error listeners after this one */
       el._geoFellBack = true;             /* for the play() promise that is about to reject */
-      el.src = remote(file);
+      el.src = src;
       el.load();
       if (playing) {
         try { el.currentTime = at; } catch (e) { /* not seekable yet */ }
@@ -192,14 +174,15 @@
     ROUGH.push(0.30 + ((Math.sin(r * 12.9898) * 43758.5453) % 1 + 1) % 1 * 0.70);
   }
 
-  function makeVoice(file) {
+  function makeVoice(src) {
     var el = new Audio();
     /* none: the start gate has already fetched the file and, on
        http(s), handed it in as a blob — a second, speculative
        download here would only race the loading bar */
     el.preload = 'none';
-    guard(el, file);
-    el.src = url(file);
+    guard(el, src);
+    el.src = url(src);
+    el._geoSrc = src;
     el.volume = 1;
     return el;
   }
@@ -252,16 +235,16 @@
   /* Is there a clip for this line? narrate() asks before it decides
      whether to clock the typing off a voice or off the reading
      rate. */
-  function hasVoice(key) { return !!VOICE[key]; }
+  function hasVoice(key) { return !!voiceSrc(key); }
 
   function say(key, opts) {
     opts = opts || {};
-    var file = VOICE[key];
-    if (!file) return Promise.resolve();
+    var src = voiceSrc(key);
+    if (!src) return Promise.resolve();
 
     unlock();
 
-    var el = voices[key] || (voices[key] = makeVoice(file));
+    var el = voices[key] || (voices[key] = makeVoice(src));
     routeThroughAnalyser(key, el);
 
     try { el.currentTime = 0; } catch (e) {}
@@ -423,9 +406,10 @@
     if (!file) return Promise.resolve();
 
     unlock();
+    var src = remote(file);
     var el = new Audio();
-    guard(el, file);
-    el.src = url(file);
+    guard(el, src);
+    el.src = url(src);
     return fireShot(el, opts);
   }
 
@@ -454,9 +438,10 @@
 
     unlock();
 
+    var src = remote(file);
     var el = new Audio();
-    guard(el, file);
-    el.src = url(file);
+    guard(el, src);
+    el.src = url(src);
     el.preload = 'auto';
 
     var spent = false;
@@ -499,8 +484,8 @@
   function startAmbience(volume) {
     if (ambience) return;
     ambience = new Audio();
-    guard(ambience, AMBIENCE);
-    ambience.src = url(AMBIENCE);
+    guard(ambience, remote(AMBIENCE));
+    ambience.src = url(remote(AMBIENCE));
     ambience.loop = true;
     ambience.volume = 0;
     var target = volume == null ? 0.24 : volume;
@@ -646,23 +631,25 @@
   function files() {
     var seen = {};
     var out = [];
-    function add(file) {
-      if (seen[file]) return;
-      seen[file] = true;
-      out.push({ file: file, url: remote(file) });
+    var I = global.I18n;
+    function add(src) {
+      if (!src || seen[src]) return;
+      seen[src] = true;
+      out.push({ file: src, url: src });
     }
-    Object.keys(VOICE).forEach(function (k) { add(VOICE[k]); });
-    Object.keys(SFX).forEach(function (k) { add(SFX[k]); });
-    add(AMBIENCE);
+    /* every clip the pack names, in the language on screen */
+    (I && I.voiceUrls ? I.voiceUrls() : []).forEach(function (u) { add(encodeURI(u)); });
+    Object.keys(SFX).forEach(function (k) { add(remote(SFX[k])); });
+    add(remote(AMBIENCE));
     return out;
   }
 
-  function adopt(file, blobUrl) {
-    if (!file || !blobUrl) return;
-    local[file] = blobUrl;
+  function adopt(src, blobUrl) {
+    if (!src || !blobUrl) return;
+    local[src] = blobUrl;
     Object.keys(voices).forEach(function (k) {
       var el = voices[k];
-      if (VOICE[k] === file && el.paused && active !== el) el.src = blobUrl;
+      if (el._geoSrc === src && el.paused && active !== el) el.src = blobUrl;
     });
   }
 

@@ -284,6 +284,13 @@ var I18n = (function () {
     var file = p && key != null && p.files[key];
     return file ? _url(p, file) : null;
   }
+  /* every clip the language's pack names, as URLs -- what a loader
+     fetches up front */
+  function voiceUrls() {
+    var p = _pack();
+    if (!p) return [];
+    return Object.keys(p.files).map(function (id) { return _url(p, p.files[id]); });
+  }
   /* every line of the language that has a recording, as it is shown --
      `only`, a pattern on the keys, narrows it (the preload wants the lines
      that are said, not the buttons) */
@@ -324,6 +331,7 @@ var I18n = (function () {
     hasVoice: hasVoice,
     voice: voice,
     voiceKey: voiceKey,
+    voiceUrls: voiceUrls,
     voiceTexts: voiceTexts,
     applyStatic: applyStatic,
     getLang: getLang,

@@ -20,8 +20,10 @@
    italic text renders anywhere, so the italic file is not shipped. */
 @font-face {
   font-family: "Libre Baskerville";
-  src: url("../assets/fonts/libre_baskerville/librebaskerville-variablefont_wght.ttf")
-       format("truetype-variations");
+  src: url("../assets/fonts/libre_baskerville/librebaskerville-variablefont_wght.woff2")
+       format("woff2-variations"),
+       url("../assets/fonts/libre_baskerville/librebaskerville-variablefont_wght.woff2")
+       format("woff2");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
@@ -35,7 +37,7 @@
    asks for a bold the file does not have. */
 @font-face {
   font-family: "Lilita One";
-  src: url("../assets/fonts/lilita_one/lilitaone-regular.ttf") format("truetype");
+  src: url("../assets/fonts/lilita_one/lilitaone-regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -686,38 +688,36 @@ button { font: inherit; color: inherit; }
 }
 
 
-/* ---------------------------------------------------------- the two sites
+/* ---------------------------------------------------------- the sites
 
-   Both are one frame in size, positioned by LAYOUT (left/top, not a
+   Each is one frame in size, positioned by LAYOUT (left/top, not a
    transform) inside the camera plate, so everything that reads
    positions off offsetLeft -- the wave fronts' centreOf() in
    js/water.js, the scatter in js/pages.js -- sees the site where
    it really is.
 
-   Site A is the frame itself: (0, 0). Site B is a frame to the
-   right and 45% of one down, which is what the camera has to
-   translate by to bring it under the lens (see SITES in
-   js/script.js, which must agree with these two figures). Diagonal
+   Where a site sits is handed in by js/pages.js as --site-x and
+   --site-y, in per cent of one frame: the first site is the frame
+   itself at (0, 0) and the others stand around it on a diamond,
+   which is what the camera has to translate by to bring each one
+   under the lens (see siteState() in js/script.js). Diagonal
    rather than straight across, because a lens that climbs, crosses
    and descends on a slant reads as a journey; one that slides
    sideways reads as a scroll.
 
-   No z-index on either, deliberately: a site is a coordinate frame
-   and nothing more. Its islands, the craft and the effect layers
-   take their places in .cam's own stacking order exactly as they
-   did in screen 3's -- see the note over .pads.                 */
+   No z-index on any of them, deliberately: a site is a coordinate
+   frame and nothing more. Its islands, the craft and the effect
+   layers take their places in .cam's own stacking order -- see the
+   note over .pads. A landing site also carries the craft's own box
+   figures (--ship-k, --scx, --scy) inline, so three crafts of
+   three shapes can stand on one sea.                             */
 .site {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: var(--site-x, 0%);
+  top: var(--site-y, 0%);
   width: 100%;
   height: 100%;
   pointer-events: none;
-}
-
-.site--b {
-  left: 100%;
-  top: 45%;
 }
 
 /* ---------------------------------------------------------- the islets
@@ -1577,6 +1577,50 @@ button { font: inherit; color: inherit; }
   text-transform: uppercase;
   opacity: .8;
 }
+
+/* ---------------------------------------------------------- the gallery's names
+   The survey's last site shows one island of each shape the lesson
+   is about, and prints its name UNDER the land -- on the water,
+   clear of the silhouette the player has just learnt to read. Set
+   in the HUD's own ink so it reads as a label on the feed rather
+   than as something painted on the rock. --foot is the bottom of
+   the painted land in per cent of the box (js/pages.js), so the
+   name hangs just below the coast whatever the shape. Faded and
+   lifted in by `.is-named`, one island at a time. */
+.pad__name {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--foot, 90%) + 3%);
+  z-index: 3;
+  margin: 0;
+  transform: translate(-50%, 40%);
+  font-family: "Libre Baskerville", Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  /* off the screen's unit, not the island's box: three shapes of one
+     painted area have three different boxes, and the names have to
+     read as one row of labels */
+  font-size: max(12px, calc(var(--pu) * 2.1));
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #eef9ff;
+  text-shadow:
+    0 1px 8px rgba(2, 28, 48, .8),
+    0 0 18px rgba(30, 150, 255, .45);
+  opacity: 0;
+  transition: opacity .5s ease, transform .6s cubic-bezier(.22, 1, .36, 1);
+  pointer-events: none;
+}
+
+.pad.is-named .pad__name {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* the gallery has no craft hovering over it and no question under it,
+   so its row stands in the middle of the frame rather than along the
+   foot, where a landing site's row leaves room for the craft above */
+.site--gallery { --land-y: 54%; }
 
 
 /* ---------------------------------------------------------- choosing a pad */

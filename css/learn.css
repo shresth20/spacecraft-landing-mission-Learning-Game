@@ -1,0 +1,1121 @@
+/* ============================================================
+   Geo Drone — the lesson's board (screen 3)
+
+   The warm-up and the triangle lesson, brought over from the
+   learning module with their look intact: the landscape, the pink
+   board, Swiftee, the chips and the slots. Every rule here is
+   scoped to .screen--learn, so nothing on the board reaches the
+   mission's chrome and nothing of the mission's reaches the board
+   -- the two keep their own palettes, faces and type scales.
+
+   What the module wrote on :root and body is written on the
+   section instead: the palette, the type scale, the face. What it
+   fixed to the viewport (the hopper, the flyer, the confetti, the
+   input lock, the tools) is fixed inside the section, which is the
+   viewport while the screen is on -- the mission's .screen is
+   transformed, so `position: fixed` resolves against it, and it
+   fills the stage edge to edge.
+   ============================================================ */
+
+/* ---------- typeface ----------
+ * Baloo 2 is the rounded display sans the board is lettered in, and it
+ * ships as a variable font, so one file covers its whole 400-800 axis. */
+@font-face {
+  font-family: "Baloo 2";
+  src: url("../assets/fonts/baloo_2/baloo2-variablefont_wght.woff2") format("woff2-variations"),
+       url("../assets/fonts/baloo_2/baloo2-variablefont_wght.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
+   PALETTE
+   Every colour literal in this file lives in this block. Nothing
+   below it may name a colour: rules reference these tokens only,
+   so re-skinning the lesson is a single edit here.
+   ============================================================ */
+.screen--learn {
+  /* Background */
+  --sky-dark: #25448A;
+  --sky-mid: #5B4DA2;
+  --sky-purple: #9D5AA8;
+  --horizon: #EA979E;
+  --ground: #D24B5B;
+  --mountain: #9D365C;
+  --rock-dark: #621F37;
+
+  /* Board */
+  --board-bg: #FBE8EA;
+  --board-highlight: #FCF1F1;
+  --board-decoration: #FADCE2;
+  --board-border: #ea979e5d;
+
+  /* Typography */
+  --heading: #85345E;
+  --text-primary: #914E75;
+
+  /* Shapes -- one fill/border pair each, as in the reference art. */
+  --rect-fill:     var(--shape-aqua);
+  --rect-border:   var(--border-aqua);
+  --square-fill:   var(--shape-purple);
+  --square-border: var(--border-purple);
+  --tri-fill:      var(--shape-peach);
+  --tri-border:    var(--border-peach);
+
+  --shape-purple:   #B98BFF;  --border-purple:   #6A35D9;
+  --shape-peach:    #FFA45C;  --border-peach:    #E0632A;
+  --shape-aqua:     #62E0DA;  --border-aqua:     #0B9BA3;
+
+  /* The pale sibling of each pair: what a name or formula card wears once it
+     has been docked under its shape. */
+  --rect-chip-bg:       #CFF7F5;
+  --rect-chip-border:   #22B4B9;
+  --rect-chip-text:     #0B6468;
+  --square-chip-bg:     #E9DBFF;
+  --square-chip-border: #8F5CE8;
+  --square-chip-text:   #4E2494;
+  --tri-chip-bg:        #FFE3CC;
+  --tri-chip-border:    #F0803F;
+  --tri-chip-text:      #8A3A12;
+
+  /* the three triangles borrow the warm-up's three pairs */
+  --tri-a-fill:   var(--square-fill);
+  --tri-a-border: var(--square-border);
+  --tri-b-fill:   var(--rect-fill);
+  --tri-b-border: var(--rect-border);
+  --tri-c-fill:   var(--tri-fill);
+  --tri-c-border: var(--tri-border);
+
+  /* The two hues the formula's words -- and the matching dotted lines under
+     every triangle -- light up in. Neither is a shape colour. */
+  --base-hl:   #E8590C;
+  --height-hl: #1F63D6;
+
+  /* the triangle lesson's own height colour: the royal blue sat too close
+     to the first triangle's purple, so here height is a deep green */
+  --tri-height-hl:   #1C9A52;
+  --tri-glow-height: rgba(28, 154, 82, .55);
+
+  /* The neutral shape accent: what a slot or a chip borrows to show it is
+     being dragged over, hovered or picked. Each .shape overrides both. */
+  --shape-fill: #FDD1B2;
+  --shape-highlight: #F8C8AB;
+  --shape-border: #BB3B59;
+
+  /* Drop Areas */
+  --drop-bg: #FDE9EF;
+  --drop-border: #EFA3C5;
+
+  /* Draggable Buttons -- the undecided card */
+  --button-bg: #FFCFE7;
+  --button-border: #E0479A;
+  --button-text: #7A1F55;
+
+  /* The round Next disc (#ico-next). */
+  --next-rim:    #C13882;
+  --next-face-1: #FF9CD0;
+  --next-face-2: #F573B5;
+  --next-face-3: #E0479A;
+  --next-arrow:  #FFF3F8;
+
+  /* feedback */
+  --correct: #2EBF7A;
+  --wrong: #E5304B;
+  --correct-ink: #137A4A;
+  --wrong-ink: #B3182F;
+
+  /* accent: what the motion system emphasises with */
+  --accent: #85345E;
+
+  /* translucent derivations */
+  --glow-board:      rgba(234, 151, 158, .55);
+  --glow-board-soft: rgba(234, 151, 158, .26);
+  --glow-board-dim:  rgba(234, 151, 158, .13);
+  --tint-decoration: rgba(250, 220, 226, .55);
+  --shadow-deep:     rgba(98, 31, 55, .34);
+  --shadow-soft:     rgba(98, 31, 55, .16);
+  --scrim:           rgba(98, 31, 55, .55);
+  --scrim-strong:    rgba(98, 31, 55, .88);
+  --sheen:           rgba(252, 241, 241, .62);
+  --ring-focus:      rgba(133, 52, 94, .38);
+  --glow-correct:    rgba(46, 191, 122, .45);
+  --glow-correct-dim:rgba(46, 191, 122, .15);
+  --tint-correct:    rgba(46, 191, 122, .20);
+  --glow-wrong:      rgba(229, 48, 75, .5);
+  --tint-wrong:      rgba(229, 48, 75, .28);
+  --tint-accent:     rgba(133, 52, 94, .18);
+  --glow-base:       rgba(232, 89, 12, .55);
+  --glow-height:     rgba(31, 99, 214, .55);
+
+  /* confetti */
+  --confetti-1: var(--rect-fill);
+  --confetti-2: var(--square-fill);
+  --confetti-3: var(--tri-fill);
+  --confetti-4: var(--button-bg);
+  --confetti-5: var(--board-border);
+  --confetti-6: var(--board-highlight);
+
+  /* ---- the type scale ----
+   * The heading is the biggest type on the board; one floor for the lot,
+   * so on a short screen the sizes close up to one size rather than
+   * fanning out. The width terms keep the lot inside a board that is
+   * narrower than 16:9 (a 4:3 tablet) -- inert at the design ratio. */
+  --board-w: min(1500px, 96vw);
+  --fs-min:     min(19.8px, calc(var(--board-w) * 0.0132));
+  --fs-heading: min(clamp(var(--fs-min), 3.5vh, 33px),   calc(var(--board-w) * 0.0220));
+  --fs-body:    min(clamp(var(--fs-min), 3vh,   28.6px), calc(var(--board-w) * 0.01907));
+  --fs-chip:    min(clamp(var(--fs-min), 2.6vh, 25.3px), calc(var(--board-w) * 0.01687));
+  --fs-small:   clamp(11px, 1.5vh, 15px);
+  --fs-label:   18px;
+  --chip-h: calc(var(--fs-chip) * 1.25 * 1.15 + 2 * clamp(4.15px, 1.23vh, 11.4px) + 4px);
+
+  /* the section itself: the landscape, and the board centred on it */
+  display: grid;
+  place-items: stretch;
+  font-family: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  color: var(--heading);
+  /* the gradient under the painting is what shows while it decodes */
+  background: linear-gradient(180deg,
+      var(--sky-dark) 0%,
+      var(--sky-mid) 34%,
+      var(--sky-purple) 52%,
+      var(--horizon) 64%,
+      var(--ground) 74%,
+      var(--ground) 100%);
+}
+
+/* the landscape: a .layer, so the start gate counts it with the rest
+   of the artwork */
+.screen--learn .learn-bg {
+  background-image: url("../assets/images/learn-bg.webp");
+  background-size: cover;
+}
+
+/* ---------- the half ----------
+ * "½" is written as a stacked fraction wherever it appears. */
+.screen--learn .frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 .1em;
+  font-size: .85em;
+  line-height: .81;
+  font-weight: 800;
+  transform: translateY(-.05em);
+}
+.screen--learn .frac .num { padding: 0 .2em .0em; border-bottom: .17em solid currentColor; }
+.screen--learn .frac .den { padding: .09em .2em; }
+
+/* ---------- board ---------- */
+.screen--learn .learn-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+/* At the design size the two caps bind and the board lands at 1200x700 --
+   the proportions of the reference art. On anything smaller the viewport
+   halves take over and it shrinks with the screen. */
+.screen--learn .board {
+  position: relative;
+  width: min(1500px, 96vw);
+  height: min(780px, 90vh);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  padding: clamp(10px, 4vh, 40px) clamp(18px, 4.5%, 64px);
+  border-radius: clamp(18px, 3.4vh, 34px);
+  border: 3px solid var(--board-border);
+  --board-wash: radial-gradient(72% 58% at 50% 42%, var(--board-highlight) 0%, var(--board-bg) 70%);
+  background:
+    url("../assets/images/learn-board.webp") center / 100% 100% no-repeat,
+    var(--board-wash);
+  background-color: var(--board-bg);
+  box-shadow:
+    0 0 12px 0 var(--glow-board),
+    0 0 32px 8px var(--glow-board-soft),
+    0 0 68px 22px var(--glow-board-dim),
+    0 18px 44px var(--shadow-deep);
+
+  /* Laid out from the first frame but invisible until the lesson opens;
+     js/learn.js animates it in. Opacity only -- a transform here would
+     shift the spot beside the heading that Swiftee jumps to. */
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.screen--learn .board.show { opacity: 1; }
+
+/* ---------- prompt ----------
+ * The instruction is the board's heading and it stays put for the whole
+ * round. Swiftee and the heading share the top row, standing together at
+ * its left end. */
+.screen--learn .prompt-row {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  /* js/learn.js sets the height to what the row shows -- Swiftee, a line --
+     and to nothing when it shows nothing, so the stage takes the room */
+  transition: height .55s cubic-bezier(.4, 0, .2, 1), margin-bottom .55s cubic-bezier(.4, 0, .2, 1);
+}
+.screen--learn .prompt-row.closed { margin-bottom: 0; }
+.screen--learn .prompt {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  margin: 0 0 0 calc(clamp(10px, 4vh, 40px) - clamp(18px, 4.5vw, 64px));
+  min-width: 0;
+  text-align: center;
+  color: var(--heading);
+  font-weight: 700;
+  font-size: var(--fs-heading);
+  line-height: 1.3;
+  letter-spacing: .1px;
+}
+.screen--learn .prompt > .mascot { margin-right: calc(var(--mascot) * -.18); }
+.screen--learn .prompt .type-wrap { opacity: 0; transition: opacity .38s ease; }
+.screen--learn .prompt.show .type-wrap { opacity: 1; }
+
+/* Typewriter: the hidden ghost reserves the final width, the live span sits
+   on top of it, so characters land in place instead of shoving the centred
+   line sideways with every keystroke. */
+.screen--learn .type-wrap  { margin-left: 10px; position: relative; display: inline-block; white-space: nowrap; }
+.screen--learn .type-ghost { visibility: hidden; }
+.screen--learn .type {
+  position: absolute;
+  inset: 0;
+  text-align: left;
+  white-space: pre-wrap;
+}
+.screen--learn .type-wrap .type-ghost,
+.screen--learn .type-wrap .type { white-space: pre; }
+.screen--learn .prompt .type { text-align: left; }
+
+/* ---------- the words ease in ----------
+ * js/learn.js lays a line out whole, a span per word, and shows the words
+ * one after another: each fades up and sharpens where it already sits. */
+.screen--learn .wd { opacity: 0; }
+.screen--learn .wd.in { animation: learn-wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes learn-wd-in {
+  from { opacity: 0; filter: blur(4px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+.screen--learn .caret {
+  /* the lines ease in word by word now, so the typewriter's caret never shows */
+  display: none;
+}
+
+/* ---------- layout ---------- */
+/* The warm-up's bay and the lesson that follows it share the board's middle
+   cell. The lesson is laid out from the first frame, hidden, so the swap
+   between the two moves nothing on the board. */
+.screen--learn .bay,
+.screen--learn .lesson { grid-area: 2 / 1; }
+
+.screen--learn .bay {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(8px, 2.5%, 30px);
+  /* the zoom grows the bay upwards, into the heading, never down over the tray */
+  transform-origin: 50% 100%;
+  transition: opacity .45s ease, visibility 0s linear .45s,
+              transform .9s cubic-bezier(.22, 1, .36, 1);
+}
+/* Swiftee has left the heading: the scene under it comes forward into the
+   room it stood in. js/learn.js works the scale out from the room there is. */
+.screen--learn .bay.zoomed,
+.screen--learn .lesson.zoomed { transform: scale(var(--scene-zoom, 1)); }
+
+/* ---------- clearing the board for page 3 ----------
+ * Opacity only, then visibility once the fade is over: the bay keeps its
+ * box, so the heading row above and the footer below stay exactly where
+ * they were. The card decks give up theirs once they have faded. */
+.screen--learn .board.sec2 .bay,
+.screen--learn .board.sec2 .tray {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.screen--learn .board.sec2 .tray { height: 0; overflow: hidden; }
+.screen--learn .tray { transition: opacity .45s ease, visibility 0s linear .45s, height 0s linear .45s; }
+.screen--learn .board.sec2 .tray-area { padding-top: 0; padding-bottom: 0; }
+
+/* The shape and its slots are a column that shares out whatever height the
+   bay has. */
+.screen--learn .cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 0;
+}
+
+/* Both rounds' slots live here from the first frame. Round 2's is folded
+   flat until its turn -- no height, no gap -- so the shape above has the
+   room while it is not needed. */
+.screen--learn .dock {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+}
+.screen--learn .dock .slot + .slot { margin-top: clamp(6px, 1.3vh, 14px); }
+.screen--learn .dock .slot[data-round="2"]:not(.reveal) {
+  height: 0;
+  margin-top: 0;
+  border-width: 0;
+  overflow: hidden;
+}
+
+/* The artwork is anchored to this box rather than flowing inside it. The
+   box asks for exactly the height the artwork can use and no more: the
+   three shapes share one scale and the tallest viewBox of the set is the
+   triangle's 210 units, so 320 x 210 is the whole set's height. The band
+   the side names land in is reserved for the whole scene, so nothing on
+   the board shifts when they appear. */
+.screen--learn .shape-stage {
+  position: relative;
+  width: 100%;
+  flex: 0 1 auto;
+  aspect-ratio: 320 / 210;
+  min-height: 0;
+}
+
+/* ---------- shapes ---------- */
+.screen--learn .shape {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.screen--learn .shape svg {
+  display: block;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.screen--learn .shape[data-shape="rect"] svg     { max-width: 100%; }
+.screen--learn .shape[data-shape="square"] svg   { max-width: 66.7%; }    /* 160 / 240 */
+.screen--learn .shape[data-shape="triangle"] svg { max-width: 83.3%; }    /* 200 / 240 */
+
+/* Each shape rebinds the generic pair to its own colours. */
+.screen--learn .shape[data-shape="rect"] {
+  --shape-fill: var(--rect-fill);
+  --shape-border: var(--rect-border);
+}
+.screen--learn .shape[data-shape="square"] {
+  --shape-fill: var(--square-fill);
+  --shape-border: var(--square-border);
+}
+.screen--learn .shape[data-shape="triangle"] {
+  --shape-fill: var(--tri-fill);
+  --shape-border: var(--tri-border);
+}
+
+.screen--learn .shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
+
+/* Both halves start blank: the outline is drawn on first, then the colour is
+   poured in behind it. js/learn.js measures each real path length and drives
+   both steps; these values are only the guard before the script runs. */
+.screen--learn .shape-outline {
+  stroke: var(--shape-border);
+  stroke-width: 2.4;
+  stroke-dasharray: 4000;
+  stroke-dashoffset: 4000;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity .5s ease;
+}
+.screen--learn .shape-fill { fill: var(--shape-fill); opacity: 0; }
+
+/* ---------- dimension labels ----------
+ * Round 2 only, and only once a learner has got one wrong: naming the sides
+ * is the hint that makes the formulas readable. */
+.screen--learn .labels {
+  opacity: 0;
+  transition: opacity .5s ease;
+  pointer-events: none;
+}
+.screen--learn .shape.labelled .labels { opacity: 1; }
+
+.screen--learn .shape-label {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: .2px;
+  fill: var(--heading);
+  stroke: var(--board-highlight);
+  stroke-width: 3.5;
+  paint-order: stroke;
+  font-size: var(--fs-label);
+}
+.screen--learn .height-line {
+  stroke: var(--shape-border);
+  stroke-width: 2.4;
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+}
+
+/* ---------- measured sides ----------
+ * A side's name sits on a dashed two-headed arrow just outside the side it
+ * measures; in the warm-up the measures take the colour of the shape they
+ * belong to. */
+.screen--learn .wdim-line,
+.screen--learn .wdim-head {
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.screen--learn .wdim-line { stroke-dasharray: 8 7; }
+.screen--learn .shape .wdim-line,
+.screen--learn .shape .wdim-head { stroke: var(--shape-border); }
+.screen--learn .shape .wdim .shape-label { fill: var(--shape-border); }
+
+/* ---------- page 3: the triangle lesson ---------- */
+.screen--learn .lesson {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(8px, 2.6vh, 24px);
+  /* laid out but not painted until the warm-up has cleared away */
+  visibility: hidden;
+  transform-origin: 50% 100%;
+  transition: transform .9s cubic-bezier(.22, 1, .36, 1);
+}
+.screen--learn .lesson.on { visibility: visible; }
+
+.screen--learn .tri-row {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  gap: clamp(8px, 2.5%, 30px);
+}
+.screen--learn .tri-cell {
+  position: relative;
+  min-height: 0;
+}
+
+/* Same anchoring as .shape: the artwork is fitted into its cell and centred.
+   The first triangle starts out translated to the middle of the row and
+   slides home to its cell (js/learn.js). */
+.screen--learn .tri {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+.screen--learn .tri svg {
+  display: block;
+  position: absolute;
+  /* the lesson's heading row is held open throughout, so the triangles
+     always keep the middle of their room */
+  --art-lift: max(0px, (100cqh - 82.1cqw) / 2);
+  inset: var(--art-lift) 0 auto 0;
+  width: 100%;
+  height: auto;
+  max-height: calc(100% - var(--art-lift));
+  overflow: visible;
+}
+.screen--learn .tri[data-tri="acute"]  { --shape-fill: var(--tri-a-fill); --shape-border: var(--tri-a-border); }
+.screen--learn .tri[data-tri="right"]  { --shape-fill: var(--tri-b-fill); --shape-border: var(--tri-b-border); }
+.screen--learn .tri[data-tri="obtuse"] { --shape-fill: var(--tri-c-fill); --shape-border: var(--tri-c-border); }
+.screen--learn .tri .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
+/* the lesson's own height colour, for the lines and the formula alike */
+.screen--learn #lesson {
+  --height-hl: var(--tri-height-hl);
+  --glow-height: var(--tri-glow-height);
+}
+
+/* Dotted dimension lines: each starts collapsed and invisible; js/learn.js
+   grows it out from its first point, then the formula lights it up. */
+.screen--learn .dim {
+  opacity: 0;
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 1.8;
+  stroke-dasharray: 8 7;
+  stroke-linecap: round;
+  transition: stroke .4s ease, stroke-width .4s ease, filter .4s ease;
+}
+/* the obtuse triangle's base carried on under its apex: a helper */
+.screen--learn .dim-ext {
+  stroke: var(--text-primary);
+  stroke-width: 1.8;
+  stroke-dasharray: 7 6;
+}
+/* A base and a height are measures, so each ends in a small open arrowhead
+   at both ends; a lit line swaps to its own colour's marker. */
+.screen--learn .tri .dim-base,
+.screen--learn .tri .dim-height { marker-start: url(#dimArrow); marker-end: url(#dimArrow); }
+.screen--learn .tri.lit-base .dim-base     { marker-start: url(#dimArrowBase);   marker-end: url(#dimArrowBase); }
+.screen--learn .tri.lit-height .dim-height { marker-start: url(#dimArrowHeight); marker-end: url(#dimArrowHeight); }
+.screen--learn .dim-arrow path {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: none;
+}
+.screen--learn #dimArrow path       { stroke: var(--heading); }
+.screen--learn #dimArrowBase path   { stroke: var(--base-hl); }
+.screen--learn #dimArrowHeight path { stroke: var(--tri-height-hl); }
+.screen--learn .dim-mark {
+  opacity: 0;
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  transition: opacity .4s ease;
+}
+.screen--learn .tri.marked .dim-mark { opacity: 1; }
+
+/* A lit line is drawn thin, so it is made evident by colour instead. */
+.screen--learn .tri.lit-base .dim-base {
+  stroke: var(--base-hl);
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 1px var(--board-highlight)) drop-shadow(0 0 3px var(--glow-base));
+}
+.screen--learn .tri.lit-height .dim-height {
+  stroke: var(--height-hl);
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 1px var(--board-highlight)) drop-shadow(0 0 3px var(--glow-height));
+}
+
+.screen--learn .dim-label {
+  opacity: 0;
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: .2px;
+  stroke: var(--board-highlight);
+  stroke-width: 3;
+  paint-order: stroke;
+  font-size: calc(var(--fs-label) * .86);
+  transition: opacity .45s ease .1s, filter .4s ease;
+}
+.screen--learn .lbl-base   { fill: var(--base-hl); }
+.screen--learn .lbl-height { fill: var(--height-hl); }
+.screen--learn .tri.lit-base .lbl-base,
+.screen--learn .tri.lit-height .lbl-height { opacity: 1; }
+
+/* The formula pops up under the triangles and types itself out. */
+.screen--learn .formula-box {
+  justify-self: center;
+  margin-bottom: clamp(2px, .8vh, 8px);
+  padding: .2em .4em;
+  color: var(--heading);
+  font-weight: 700;
+  font-size: calc(var(--fs-body) * 1.3);
+  line-height: 1.3;
+  letter-spacing: .2px;
+
+  opacity: 0;
+  transform: translateY(12px) scale(.7);
+  transition: opacity .3s ease, transform .5s cubic-bezier(.2, .9, .3, 1.4);
+}
+.screen--learn .formula-box.show { opacity: 1; transform: none; }
+.screen--learn .formula-box .type-wrap { display: inline-block; vertical-align: top; }
+.screen--learn .formula-box .type { white-space: nowrap; }
+
+/* the two words the lesson is about: a highlighter sweeps in behind each the
+   moment it has finished typing */
+.screen--learn .formula-box .w {
+  display: inline-block;
+  padding: 0 .18em;
+  border-radius: .32em;
+  transition: background-color .4s ease, color .4s ease;
+}
+.screen--learn .formula-box .w.lit.w-base   { background: var(--base-hl);   color: var(--rock-dark); }
+.screen--learn .formula-box .w.lit.w-height { background: var(--height-hl); color: var(--board-highlight); }
+
+/* ---------- next button ----------
+ * The round pink arrow, in the board's bottom right corner. It shares the
+ * footer band's grid cell with the card decks and is placed at its far end,
+ * so it never sits over a chip. */
+.screen--learn .next-btn {
+  grid-area: 3 / 1;
+  place-self: end end;
+  margin: 0 0 clamp(10px, 2.6vh, 26px);
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(54px, 9.6vh, 92px);
+  height: clamp(54px, 9.6vh, 92px);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-family: inherit;
+  filter: drop-shadow(0 5px 9px var(--shadow-soft));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  opacity: 0;
+  transform: translateY(14px) scale(.88);
+  transition: opacity .38s ease,
+              transform .42s cubic-bezier(.2, .9, .3, 1.4),
+              filter .18s ease;
+}
+.screen--learn .next-ico { display: block; width: 100%; height: 100%; }
+.screen--learn .learn-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.screen--learn .next-btn[hidden] { display: none; }
+.screen--learn .next-btn.in {
+  opacity: 1;
+  transform: none;
+  animation: learn-next-pulse 2s ease-in-out .6s infinite;
+}
+.screen--learn .next-btn.in:hover,
+.screen--learn .next-btn.in:focus-visible {
+  animation-play-state: paused;
+  filter: drop-shadow(0 8px 13px var(--shadow-soft)) brightness(1.05);
+  transform: translateY(-3px) scale(1.06);
+  outline: none;
+}
+.screen--learn .next-btn.in:focus-visible { outline: 3px solid var(--ring-focus); outline-offset: 3px; }
+.screen--learn .next-btn.in:active { transform: translateY(1px) scale(.98); }
+.screen--learn .next-btn.out {
+  opacity: 0;
+  transform: scale(.9);
+  transition: opacity .28s ease, transform .28s ease;
+}
+@keyframes learn-next-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.07); }
+}
+
+/* ---------- drop slots ---------- */
+.screen--learn .slot {
+  --slot-border: 2.5px;
+  --slot-radius: 999px;
+  width: min(100%, 250px);
+  height: clamp(40px, 8vh, 74px);
+  border: var(--slot-border) dashed var(--drop-border);
+  border-radius: var(--slot-radius);
+  background: var(--drop-bg);
+  display: grid;
+  place-items: center;
+
+  opacity: 0;
+  transform: translateY(12px) scale(.95);
+  transition: opacity .34s ease,
+              transform .34s cubic-bezier(.2, .9, .3, 1.3),
+              height .5s cubic-bezier(.4, 0, .2, 1),
+              margin-top .5s cubic-bezier(.4, 0, .2, 1),
+              border-width .5s cubic-bezier(.4, 0, .2, 1),
+              background .2s ease,
+              box-shadow .2s ease,
+              border-color .2s ease;
+}
+.screen--learn .slot.reveal { opacity: 1; transform: none; }
+/* While motion.js walks a group in, the two properties it is writing are its
+   own: the transition above would be a second animation of the same opacity
+   and the same transform. */
+.screen--learn .slot.revealing {
+  transition-property: height, margin-top, border-width, background, box-shadow, border-color;
+}
+.screen--learn .slot:not(.reveal) { pointer-events: none; }
+
+.screen--learn .slot.over {
+  background: var(--board-highlight);
+  border-color: var(--shape-border);
+  transform: scale(1.04);
+  box-shadow: 0 0 10px 2px var(--glow-board), 0 0 24px 8px var(--glow-board-dim);
+}
+
+.screen--learn .slot.filled {
+  border-style: solid;
+  border-color: var(--docked-border, var(--button-border));
+  background: var(--docked-bg, var(--drop-bg));
+  padding: 0;
+  overflow: hidden;
+  transform: none;
+}
+/* Once a card is docked, the slot and the card in it take the pale pair of
+   the shape above, so each finished column is one colour top to bottom. */
+.screen--learn .slot[data-accept="rect"].filled {
+  --docked-bg:     var(--rect-chip-bg);
+  --docked-border: var(--rect-chip-border);
+  --docked-text:   var(--rect-chip-text);
+}
+.screen--learn .slot[data-accept="square"].filled {
+  --docked-bg:     var(--square-chip-bg);
+  --docked-border: var(--square-chip-border);
+  --docked-text:   var(--square-chip-text);
+}
+.screen--learn .slot[data-accept="triangle"].filled {
+  --docked-bg:     var(--tri-chip-bg);
+  --docked-border: var(--tri-chip-border);
+  --docked-text:   var(--tri-chip-text);
+}
+
+/* A correct dock: the green the slot keeps. */
+.screen--learn .slot.correct {
+  border-color: var(--correct);
+  box-shadow: 0 0 0 4px var(--tint-correct);
+}
+
+/* ---------- wrong answer: the red flash ---------- */
+.screen--learn .slot.reject {
+  border-color: var(--wrong);
+  border-style: solid;
+  background: var(--tint-wrong);
+  box-shadow: 0 0 0 4px var(--glow-wrong);
+}
+.screen--learn .chip.reject {
+  border-color: var(--wrong);
+  background: var(--tint-wrong);
+  box-shadow:
+    0 var(--edge) 0 var(--wrong),
+    0 0 0 3px var(--glow-wrong);
+}
+
+/* ---------- word choices ---------- */
+.screen--learn .tray-area {
+  grid-area: 3 / 1;
+  position: relative;
+  padding: clamp(18px, 5.2vh, 52px) 0 clamp(12px, 3.2vh, 30px);
+  transition: padding .5s cubic-bezier(.4, 0, .2, 1);
+}
+/* Round 2's deck is laid straight over round 1's, so the band keeps the same
+   height all level long. Only the deck in play takes pointer events. */
+.screen--learn .tray[data-round="2"] {
+  position: absolute;
+  inset: clamp(18px, 5.2vh, 52px) 0 clamp(12px, 3.2vh, 30px) 0;
+}
+.screen--learn .tray { pointer-events: none; }
+.screen--learn .tray.live { pointer-events: auto; }
+
+.screen--learn .tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  gap: clamp(8px, 1.8%, 26px);
+}
+
+/* Deliberately one neutral pink on every chip: a chip that echoed its shape's
+   colour would hand the learner the answer before they had thought about it. */
+.screen--learn .chip {
+  /* The chip stands on a side wall: --edge is the height of that wall, and
+     --sink is how far the surface travels when Motion.button3d() presses it.
+     The travel is `translate`, never `transform`. */
+  --edge: 4px;
+  --sink: 0px;
+  translate: 0 var(--sink);
+
+  position: relative;
+  font-family: inherit;
+  padding: clamp(4.15px, 1.23vh, 11.4px) clamp(8px, 1.6vw, 20px);
+  border: 2px solid var(--button-border);
+  border-radius: 999px;
+  background: var(--button-bg);
+  box-shadow:
+    0 var(--edge) 0 var(--button-border),
+    0 calc(var(--edge) / 2) 6px var(--shadow-soft);
+  color: var(--button-text);
+  font-weight: 700;
+  font-size: calc(var(--fs-chip) * 1.25);
+  line-height: 1.15;
+  letter-spacing: .2px;
+  cursor: grab;
+  touch-action: none;
+
+  opacity: 0;
+  transform: translateY(16px) scale(.9);
+  transition: opacity .34s ease,
+              transform .34s cubic-bezier(.2, .9, .3, 1.35),
+              box-shadow .16s ease,
+              border-color .16s ease,
+              background .16s ease;
+}
+.screen--learn .chip.reveal { opacity: 1; transform: none; }
+.screen--learn .chip.revealing { transition-property: box-shadow, border-color, background; }
+.screen--learn .chip:not(.reveal) { pointer-events: none; }
+
+/* The press writes --edge every frame and box-shadow is spelled off it, so a
+   transition on box-shadow would smear the wall as it collapses. */
+.screen--learn .chip.is-3d {
+  transition: opacity .34s ease,
+              transform .34s cubic-bezier(.2, .9, .3, 1.35),
+              border-color .16s ease,
+              background .16s ease;
+}
+.screen--learn .chip.is-3d.revealing {
+  transition: border-color .16s ease, background .16s ease;
+}
+
+/* Area formulas run longer than a single word, so they get a step down. */
+.screen--learn .chip.formula { font-size: calc(var(--fs-chip) * 1.15); }
+.screen--learn .chip.formula sup { font-size: .68em; vertical-align: super; line-height: 0; }
+.screen--learn .chip.formula sub { font-size: .68em; vertical-align: sub; line-height: 0; }
+
+.screen--learn .chip.reveal:hover,
+.screen--learn .chip.reveal:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--shape-border);
+  box-shadow:
+    0 var(--edge) 0 var(--button-border),
+    0 calc(var(--edge) + 2px) 14px var(--shadow-soft);
+  outline: none;
+}
+.screen--learn .chip:active { cursor: grabbing; }
+.screen--learn .chip.picked {
+  transform: translateY(-3px);
+  border-color: var(--shape-border);
+  box-shadow:
+    0 var(--edge) 0 var(--button-border),
+    0 0 0 4px var(--ring-focus);
+}
+.screen--learn .chip.dragging { opacity: .35; }
+.screen--learn .chip.placed { visibility: hidden; }
+
+/* A docked chip fills its slot edge to edge: the slot's own border becomes the
+   chip's ring, so there is no pill-inside-a-box. */
+.screen--learn .slot .chip {
+  width: 100%;
+  height: 100%;
+  padding: 0 clamp(8px, 2%, 16px);
+  border: 0;
+  border-radius: calc(var(--slot-radius) - var(--slot-border));
+  background: transparent;
+  color: var(--docked-text, var(--button-text));
+  --edge: 0px;
+  --sink: 0px;
+  box-shadow: none;
+  font-size: calc(var(--fs-chip) * 1.5);
+  white-space: nowrap;
+  cursor: default;
+  opacity: 1;
+  transform: none;
+}
+.screen--learn .slot .chip.formula { font-size: calc(var(--fs-chip) * 1.3); }
+
+/* The clone that follows the pointer during a real drag. It rides on the
+   body, outside this screen, so it carries the chip's look with it. */
+.chip.learn-ghost {
+  --edge: 0px;
+  --sink: 0px;
+  font-family: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  opacity: 1;
+  transform: none;
+  transition: none;
+  box-shadow: 0 10px 22px rgba(98, 31, 55, .34);
+}
+
+/* ---------- demo drag shown under the voice-over ---------- */
+.screen--learn .demo-ghost {
+  --edge: 0px;
+  --sink: 0px;
+  position: fixed;
+  z-index: 950;
+  opacity: 0;             /* the keyframes take it up to .55 and back */
+  pointer-events: none;
+  transition: none;
+  border-color: var(--shape-border);
+  box-shadow: 0 8px 18px var(--shadow-deep);
+}
+
+/* ---------- mascot ----------
+ * Swiftee stands to the left of the heading, in the top row's flow. Its box
+ * is a fixed size, so switching expressions can never move the game. */
+.screen--learn .board { --mascot: clamp(72px, 17vh, 160px); }
+
+/* where the artwork sits in its room: every shape is fitted into its box
+   with `meet`; each drawing sits this far under the top of its room */
+.screen--learn .board { --art-gap: 200vh; }
+.screen--learn .board:has(.prompt-row:not(.closed)) { --art-gap: clamp(2px, 0.8vh, 8px); }
+
+.screen--learn .mascot {
+  position: relative;
+  flex: none;
+  width: var(--mascot);
+  height: var(--mascot);
+  margin: calc(var(--mascot) * -.1) calc(var(--mascot) * -.06);
+  pointer-events: none;
+  background-image: var(--sw-img);
+  background-repeat: no-repeat;
+  background-size: var(--sw-size);
+  background-position: var(--sw-pos);
+  filter: drop-shadow(0 5px 8px var(--shadow-soft));
+  /* no fade: it arrives by jumping, and the hand-off from the hopper has to
+     be a hard cut on the very same frame */
+  opacity: 0;
+}
+.screen--learn .mascot.in { opacity: 1; }
+
+/* The hopper: the same sprite, fixed to the screen and painted under the
+   board (it comes before the board in the document). The flyer is its
+   twin over the board. js/learn.js sizes and places both from the in-board
+   sprite's box. */
+.screen--learn .hopper,
+.screen--learn .flyer {
+  position: fixed;
+  display: none;
+  pointer-events: none;
+  background-image: var(--sw-img);
+  background-repeat: no-repeat;
+  background-size: var(--sw-size);
+  background-position: var(--sw-pos);
+  filter: drop-shadow(0 5px 8px var(--shadow-soft));
+}
+.screen--learn .hopper.on,
+.screen--learn .flyer.on { display: block; will-change: transform; }
+.screen--learn .hopper { z-index: 1; }
+.screen--learn .flyer { z-index: 800; }
+
+/* ---------- round complete ---------- */
+.screen--learn .board.cheer { animation: learn-board-cheer 1.15s ease-in-out; }
+@keyframes learn-board-cheer {
+  0%, 100% {
+    box-shadow: 0 0 12px 0 var(--glow-board),
+                0 0 32px 8px var(--glow-board-soft),
+                0 0 68px 22px var(--glow-board-dim),
+                0 18px 44px var(--shadow-deep);
+  }
+  50% {
+    box-shadow: 0 0 18px 2px var(--glow-correct),
+                0 0 48px 14px var(--tint-correct),
+                0 0 96px 34px var(--glow-correct-dim),
+                0 18px 44px var(--shadow-deep);
+  }
+}
+
+/* ---------- confetti ---------- */
+.screen--learn .learn-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  overflow: hidden;
+}
+.screen--learn .learn-fx i {
+  position: fixed;
+  display: block;
+  border-radius: 2px;
+  will-change: transform, opacity;
+}
+
+/* ---------- input lock ---------- */
+/* A transparent sheet over the board: while a line is being said it eats
+   every click, so nothing can be dragged early. The mission's own nav
+   sits outside this screen, above it, and stays live. */
+.screen--learn .input-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: none;
+  cursor: default;
+  background: transparent;
+}
+.screen--learn .input-lock.on { display: block; }
+
+/* ---------- Skip ----------
+ * Understated on purpose: a way around a page, not a thing to press. It
+ * clears the input lock (900) so it stays live while a page is playing --
+ * the only time it is any use. */
+.screen--learn .learn-tools {
+  position: fixed;
+  left: clamp(12px, 1.6vw, 26px);
+  bottom: clamp(12px, 1.6vh, 24px);
+  z-index: 940;
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, .7vw, 10px);
+}
+.screen--learn .tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .34em;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-small);
+  letter-spacing: .5px;
+  color: var(--text-primary);
+  padding: clamp(4px, .7vh, 7px) clamp(9px, 1.1vw, 14px);
+  border: 2px solid var(--drop-border);
+  border-radius: 999px;
+  background: var(--drop-bg);
+  box-shadow: 0 2px 8px var(--shadow-soft);
+  cursor: pointer;
+
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .34s ease,
+              transform .34s ease,
+              color .16s ease,
+              border-color .16s ease,
+              background .16s ease;
+}
+.screen--learn .tool-btn[hidden] { display: none; }
+.screen--learn .tool-btn.in { opacity: .75; transform: none; }
+.screen--learn .tool-btn.in:hover,
+.screen--learn .tool-btn.in:focus-visible {
+  opacity: 1;
+  color: var(--button-text);
+  border-color: var(--button-border);
+  background: var(--button-bg);
+  outline: none;
+}
+.screen--learn .tool-btn.in:active { transform: translateY(1px); }
+.screen--learn .tool-btn:disabled { cursor: default; opacity: .4; }
+.screen--learn .tool-icon {
+  width: .82em;
+  height: .82em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Swiftee's reaction, unseen ----------
+ * The answer to a drop is never written in the heading area: the bird's
+ * expression and the sound carry it. The text goes to the live region only. */
+.screen--learn .quip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- the motion system's own furniture ---------- */
+.screen--learn .mo-lifted,
+.chip.learn-ghost.mo-lifted { box-shadow: 0 10px 22px rgba(98, 31, 55, .16); }
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .screen--learn .wd.in { animation-duration: .08s; }
+  .screen--learn .bay { transition: opacity .45s ease, visibility 0s linear .45s, transform .2s ease; }
+  .screen--learn .lesson { transition: transform .2s ease; }
+  .screen--learn .board.cheer,
+  .screen--learn .next-btn.in { animation: none; }
+}

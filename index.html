@@ -7,14 +7,14 @@
   <!-- inline, so the browser's automatic /favicon.ico request never
        404s: nothing on the server has to exist for it -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%2306101f'/%3E%3Cpath d='M32 10 54 50H10Z' fill='%234fd8ff'/%3E%3C/svg%3E" />
-  <title>Spacecraft Landing Mission/</title>
+  <!-- filled from locales/locales.json (pageTitle) once the locale is in -->
+  <title>Spacecraft Landing Mission</title>
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/animation.css" />
-  <!-- the survey's two sites and screens 4-8: the shape task, the
-       area task and the islands they are played on -->
+  <!-- the playing screens' sites: the shape task, the area task and
+       the islands they are played on -->
   <link rel="stylesheet" href="css/rounds.css" />
-  <!-- the landing and its two failures, for the survey and screens
-       4 to 8.
+  <!-- the landing and its two failures.
        After style.css and rounds.css, and it has to stay there:
        the phase rules take the craft back off the idle bob and the
        arrival flight, and they do it on equal specificity, so being
@@ -22,17 +22,24 @@
   <link rel="stylesheet" href="css/failure.css" />
   <link rel="stylesheet" href="css/responsive.css" />
   <!-- the shore, the shallows, the foam and the sea itself.
-       Last, because the two rules it overrides outright
-       (.zone__wake's weight, and the sea artwork's swell) are
-       written at the same specificity as the ones they replace. -->
+       Last of the mission's own sheets, because the two rules it
+       overrides outright (.zone__wake's weight, and the sea
+       artwork's swell) are written at the same specificity as the
+       ones they replace. -->
   <link rel="stylesheet" href="css/water.css" />
+  <!-- the lesson's board, scoped to its own screen (.screen--learn)
+       so none of it reaches the mission's chrome -->
+  <link rel="stylesheet" href="css/learn.css" />
 
-  <link rel="preload" as="font" type="font/ttf" crossorigin
-        href="assets/fonts/libre_baskerville/librebaskerville-variablefont_wght.ttf" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="assets/fonts/libre_baskerville/librebaskerville-variablefont_wght.woff2" />
   <!-- the gate's title is the first type on screen, and it is the
        only thing set in this face -->
-  <link rel="preload" as="font" type="font/ttf" crossorigin
-        href="assets/fonts/lilita_one/lilitaone-regular.ttf" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="assets/fonts/lilita_one/lilitaone-regular.woff2" />
+  <!-- the lesson's board is lettered in this one -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="assets/fonts/baloo_2/baloo2-variablefont_wght.woff2" />
 
   <!-- No <link rel=preload> for the artwork or the audio: the start
        gate fetches every asset itself (js/preload.js) so the loading
@@ -76,7 +83,8 @@
 
     <!-- ░░ LAUNCH button ░░ -->
     <div class="launch-slot" id="launchSlot">
-      <button class="launch" id="launchBtn" type="button" aria-label="Launch the survey drone">
+      <button class="launch" id="launchBtn" type="button"
+              aria-label="Launch the survey drone" data-i18n-attr="aria-label:launchAria">
         <span class="launch__ring" aria-hidden="true"></span>
         <span class="launch__body">
           <!-- decorative: the cap carries no type of its own, and
@@ -93,56 +101,39 @@
 
   <!-- ══════════════════════════ SCREEN 2 — THE SURVEY ══════════════════════════
 
-       One screen, one continuous shot, both halves of the lesson.
+       One screen, one continuous shot over one sea.
 
        The drone's lens opens on the whole archipelago from survey
-       height — twenty-odd small islands of every shape in the
-       mission, breaking the surface across a sea several frames
-       wide — and comes down twice:
+       height — small islands of every shape in the mission,
+       breaking the surface across a sea several frames wide — and
+       comes down on four SITES in turn:
 
-         SITE A   three triangles of three sizes and two other
-                  shapes. The SHAPE question: "select all the
-                  triangular landing zones."
-         SITE B   three triangles of three sizes, in the row the
-                  landing is laid out on, and nothing else. The
-                  craft arrives and the AREA question is asked:
-                  "choose the landing zone with the exact area."
-                  What used to be screen 3 happens here.
+         SQUARE     three squares of three sizes and two other
+                    shapes: "select all the square landing zones"
+         RECTANGLE  the same question of the rectangles
+         TRIANGLE   and of the triangles
+         GALLERY    one square, one rectangle and one triangle, each
+                    with its name under it: the beat that hands the
+                    mission over to the lesson (screen 3)
 
-       Between the two the lens climbs back to altitude, crosses
-       the water, and descends on the second site — see THE CAMERA
-       in js/animation.js and runSurvey() in js/script.js.
+       Between any two the lens climbs back to altitude, crosses
+       the water, and descends on the next — see THE CAMERA in
+       js/animation.js and runRound() in js/script.js.
 
        ── the world ──
 
        `.cam` is the camera plate and everything inside it is in
-       WORLD coordinates: per cent of one frame, with site A's frame
-       at (0..100, 0..100) and site B's a frame to the right and
-       half a frame down (see .site--b in css/style.css). The
-       islets are strewn over the water between and around the two.
-       The camera's ground state at either site is a translate and
-       a scale of exactly 1, so the layout each task is measured on
-       is the layout itself.
+       WORLD coordinates: per cent of one frame, with the first
+       site's frame at (0..100, 0..100) and the others standing
+       around it on a diamond (see .site in css/style.css and the
+       `at` figures in js/pages.js). The islets are strewn over the
+       water between and around them. The camera's ground state at
+       any site is a translate and a scale of exactly 1, so the
+       layout each task is measured on is the layout itself.
 
-       ── geometry ──
-
-       Both pieces of artwork are 1254x1254 squares with a shape
-       painted on them. Measured off the alpha channel:
-
-         Triangle.webp            a clean triangle — apex (50.0%, 10.9%),
-                                 base y 89.7% from x 3.3% to 96.5%.
-                                 Fills 36.623% of the canvas; its centre
-                                 of area is (49.94%, 63.45%).
-
-         Triangle spaceship.webp  hull apex (50.0%, 2.8%), base y 70.0%
-                                 from x 4.94% to 94.82%. Fills 31.407%;
-                                 centre of area (49.92%, 47.72%).
-
-       The camera looks straight down, so there is no ground line to
-       stand on: a landing is one flat shape coming down onto
-       another, and both sides are anchored on their CENTRE OF AREA.
-       Every figure in the survey block of css/style.css and in
-       plan() (js/failure.js) comes off those two readings.
+       The plate is EMPTY here: GeoPages.buildSurvey() fills it at
+       boot with the islets and the four sites, exactly as it builds
+       the screens that follow the lesson.
        ══════════════════════════════════════════════════════════════════════ -->
   <section class="screen screen--drone" id="screenDrone">
 
@@ -153,135 +144,23 @@
     <div class="blackout" id="blackout" aria-hidden="true"></div>
 
     <!-- ░░ THE CAMERA ░░
-
          The lens, and everything it actually flies over. The bezel,
          the scanner, the haze, the altimeter, the narration bar,
          the HUD lines and the NEXT button are all OUTSIDE it — they
          are on the lens, not under it, so they hold still while the
-         water moves.
-
-         js/water.js mounts the wave fronts in here too, and the
-         landing's effect layers live inside site B: both are placed
-         from layout positions, which cannot see a transform, so
-         they have to be on this side of it. See the .cam block in
-         css/style.css. -->
-    <div class="cam" id="cam">
-
-      <!-- the wider sea: small islands of every shape, strewn over
-           the water around and between the two sites by
-           GeoPages.buildSurvey(). Scenery, not controls. -->
-      <div class="islets" id="islets" aria-hidden="true"></div>
-
-      <!-- ░░ SITE A — the shape question ░░
-           Five islands, filled in by js/pages.js: three triangles of
-           three sizes and two shapes drawn from the other five, a
-           different pair every visit. Strewn across the five
-           stations on every entry, exactly as a round screen is. -->
-      <div class="site site--a" id="siteA">
-        <div class="pads" id="padsA"></div>
-      </div>
-
-      <!-- ░░ SITE B — the landing ░░
-           A frame to the right and half a frame down. Three
-           triangles of 30, 12 and 20 square units dealt across the
-           row -- nothing else: the shape question is behind the
-           player by now -- and the craft that has to come down on
-           the 20. -->
-      <div class="site site--b" id="siteB">
-
-        <!-- ░░ the spaceship, with its measurements called out ░░ -->
-        <div class="ship" id="ship">
-
-          <!-- The craft's shadow on the water is NOT here: js/water.js
-               inserts .ship__cast and .ship__wash at the front of this
-               element, and css/failure.css animates the cast one as the
-               landing shadow rather than adding a second. -->
-
-          <!-- dust pushed out from under the hull as its weight comes
-               on. Before .ship__craft, and z 0 against the craft's 1 -->
-          <span class="ship__dust" aria-hidden="true"></span>
-
-          <div class="ship__craft" id="shipCraft">
-            <img class="ship__img" src="assets/images/Triangle spaceship.webp"
-                 alt="Triangular spaceship, base 8 units, height 5 units" />
-
-            <!-- The exhaust is painted into the artwork, so this is off
-                 by default and the engine's state is told through the
-                 hull's glow instead. Give .ship a data-flame="on" and
-                 this lights up, flickers, throttles back on the descent
-                 and goes out on impact. See css/failure.css, block 2. -->
-            <span class="engine-flame" aria-hidden="true"></span>
-
-            <!-- Dimension overlay. The viewBox is in PERCENT OF THE SHIP BOX
-                 (-28..104 on both axes), and the element is placed at exactly
-                 those percentages, so one user unit is one percent of the ship
-                 and every coordinate can be read straight off the measurements
-                 in the comment above. -->
-            <svg class="ship__dims" id="shipDims" viewBox="-28 -6 132 132" aria-hidden="true">
-              <!-- perpendicular height, apex down to the middle of the base -->
-              <path class="dim__inner" d="M49.9 2.8V69.8" />
-              <path class="dim__square" d="M49.9 62.4H57.3V69.8" />
-
-              <!-- height: 5 units, called out down the left. The line runs
-                   the measured length and is capped with a tick at each
-                   end — no witness lines back to the hull's corners; see
-                   the note over across() in js/pages.js, which builds the
-                   same callouts for the round screens. -->
-              <path class="dim__line" d="M-8 2.8V69.8" />
-              <path class="dim__tip" d="M-11.6 2.8H-4.4M-11.6 69.8H-4.4" />
-              <text class="dim__text" x="-15" y="36.3"
-                    transform="rotate(-90 -15 36.3)">5 units</text>
-
-              <!-- base: 8 units, called out under the exhaust -->
-              <path class="dim__line" d="M4.94 101H94.74" />
-              <path class="dim__tip" d="M4.94 97.4V104.6M94.74 97.4V104.6" />
-              <text class="dim__text" x="49.9" y="116">8 units</text>
-            </svg>
-          </div>
-        </div>
-
-        <div class="pads" id="padsB"></div>
-
-        <!-- ░░ the landing's effect layers ░░
-             Empty until something hits something. js/failure.js
-             parks the dust, the debris, the spray, the bubbles and
-             the rings inside these, on the point the craft actually
-             went over — never at a fixed spot.
-
-             Two layers, not one, and the ship is between them: the
-             BACK one (z 3) is under the craft, so the scorch mark it
-             leaves is under the wreck and half the spray goes up
-             behind the hull. The FRONT one (z 6) is over both the
-             craft and the water overlay.
-
-             In here, inside the site, rather than on the screen:
-             the points they are parked on are worked out in screen
-             coordinates, and with the lens down on this site the
-             site's box IS the screen's box. -->
-        <div class="fx-layer fx-layer--back" id="fxBack" aria-hidden="true"></div>
-
-        <!-- a patch of sea painted ABOVE the craft (z 5 against the
-             ship's 4) and faded up as it goes down, so a sinking
-             spacecraft passes UNDER something instead of dissolving -->
-        <div class="water-depth-overlay" id="waterDepth" aria-hidden="true"></div>
-
-        <div class="fx-layer fx-layer--front" id="fxFront" aria-hidden="true"></div>
-      </div>
-
-    </div>
+         water moves. js/water.js mounts the wave fronts in here too.
+         See the .cam block in css/style.css. -->
+    <div class="cam" id="cam"></div>
 
     <!-- the air between a camera at survey height and the water
          under it: full while the lens is high, gone by the time it
-         is down. Plain alpha rather than a blend mode, for the same
-         reason .sea__glare is — it has to read over rock as well as
-         over sea. -->
+         is down. -->
     <div class="aerial" aria-hidden="true"></div>
 
     <!-- the acquisition bracket. Drawn at FRAME scale rather than
          inside the camera, so its corners are placed on where the
          wide lens is showing a site (see siteBox() in js/script.js)
-         and its line weight does not shrink with it. Released
-         partway down each descent. -->
+         and its line weight does not shrink with it. -->
     <div class="fix" aria-hidden="true">
       <div class="fix__box">
         <span class="fix__ring"></span>
@@ -295,14 +174,14 @@
     <!-- ░░ altimeter ░░ the one instrument on the feed, and it is
          here to say that what is changing is the CAMERA and not the
          islands. It follows the lens itself — see altFollow() in
-         js/script.js — so it climbs, holds and descends with it. -->
+         js/script.js. -->
     <div class="alt" id="altHud" aria-hidden="true">
       <span class="alt__track"><i class="alt__mark"></i></span>
       <span class="alt__read">
         <span class="alt__row">
-          <b class="alt__num" id="altNum">4200</b><i class="alt__unit">m</i>
+          <b class="alt__num" id="altNum">4200</b><i class="alt__unit" data-i18n="altUnit">m</i>
         </span>
-        <em class="alt__state" id="altState">STANDBY</em>
+        <em class="alt__state" id="altState" data-i18n="altStandby">STANDBY</em>
       </span>
     </div>
 
@@ -318,11 +197,7 @@
     <!-- HUD frame, stretched to fill — retired once the scan lands -->
     <div class="layer layer--hud drone-hud" id="droneHud" aria-hidden="true"></div>
 
-    <!-- ░░ celebration ░░
-         Paper falls from the top of the frame the moment the craft
-         is planted. Built by JS (see M.confetti) so the count
-         follows the viewport and the shower can be torn down if the
-         player jumps away mid-cheer. -->
+    <!-- ░░ celebration ░░ built by JS (see M.confetti) -->
     <div class="confetti" id="confetti" aria-hidden="true"></div>
 
     <!-- the formula and the tally, under the landing -->
@@ -347,12 +222,338 @@
     </header>
 
     <!-- ░░ on to the next screen ░░
-         Hidden until the craft is planted: it is the reward for the
-         right answer, not a way past the question. -->
+         Hidden until a landing is planted: it is the reward for the
+         right answer, not a way past the question. The survey ends
+         on the gallery, which goes on by itself. -->
     <div class="advance" aria-hidden="false">
       <button class="advance__btn" id="advanceBtn" type="button" hidden>
-        <span class="advance__label">NEXT</span>
+        <span class="advance__label" data-i18n="btnNext">NEXT</span>
         <svg class="advance__arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+      </button>
+    </div>
+
+  </section>
+
+
+  <!-- ══════════════════════════ SCREEN 3 — THE LESSON ══════════════════════════
+
+       The warm-up and the triangle lesson, brought over from the
+       learning module: a board on its own landscape, with Swiftee,
+       played by js/learn.js and dressed by css/learn.css. Both are
+       scoped to this section, so nothing in here reaches the
+       mission's own chrome and nothing of the mission's reaches in.
+
+         page 2  the three shapes draw themselves; "Here are a few
+                 common shapes." / "Drag each name to the matching
+                 shape." / "Great! Now let's recall their area
+                 formulas." — two rounds of drag-and-drop, then
+                 "Well Done!" and Next
+         page 3  one triangle, then three: "Triangles can look
+                 different. But their area depends on the base and
+                 height." / "Let's observe their base and height."
+                 — the dotted base and height grow on, the formula
+                 types itself out and lights them, then Next, which
+                 brings the mission back (screen 4)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <section class="screen screen--learn" id="screenLearn">
+
+    <!-- the landscape the board stands on -->
+    <div class="layer layer--bg learn-bg" aria-hidden="true"></div>
+
+    <!-- arrowheads for the measuring lines, one per colour a base
+         or a height can be drawn in, and the Next disc's artwork.
+         Not display:none, which would stop the markers painting. -->
+    <svg class="learn-defs" width="0" height="0" aria-hidden="true" focusable="false">
+      <defs>
+        <marker id="dimArrow" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
+                markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+          <path d="M1.2 .8 L5 3 L1.2 5.2" />
+        </marker>
+        <marker id="dimArrowBase" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
+                markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+          <path d="M1.2 .8 L5 3 L1.2 5.2" />
+        </marker>
+        <marker id="dimArrowHeight" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
+                markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+          <path d="M1.2 .8 L5 3 L1.2 5.2" />
+        </marker>
+
+        <symbol id="ico-next" viewBox="0 0 100 100">
+          <linearGradient id="icoNextFace" x1="50" y1="8" x2="50" y2="92" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="var(--next-face-1)" />
+            <stop offset=".55" stop-color="var(--next-face-2)" />
+            <stop offset="1" stop-color="var(--next-face-3)" />
+          </linearGradient>
+          <!-- the rim, set a little low so it reads as the thickness of a disc -->
+          <circle cx="50" cy="51.5" r="45" fill="var(--next-rim)" />
+          <circle cx="50" cy="50" r="41.5" fill="url(#icoNextFace)" />
+          <!-- the arrow: drawn small and grown back by a round stroke, which is
+               what rounds every corner of it evenly -->
+          <path d="M31.25 43.125 H52.5 V31.25 L77.5 50 L52.5 68.75 V56.875 H31.25 Z"
+                fill="var(--next-arrow)" stroke="var(--next-arrow)" stroke-width="8.75"
+                stroke-linejoin="round" stroke-linecap="round" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <!-- Swiftee's stand-in for the half of its jump that happens behind the
+         board: it sits before the board in the document, so it paints under
+         it, and js/learn.js hands over to the in-board sprite at the top of
+         the arc. -->
+    <div class="hopper" id="hopper" aria-hidden="true"></div>
+
+    <div class="learn-stage">
+      <main class="board" id="board">
+
+        <!-- The instruction is the board's heading, with Swiftee standing to
+             its left. It types itself out in step with the voice-over and
+             then stays for the rest of the round. -->
+        <header class="prompt-row">
+          <h2 class="prompt" id="prompt">
+            <!-- Swiftee's place for the whole lesson: it jumps in here from
+                 behind the board once there is something to say, and stands
+                 at the left end of whatever line the heading shows -->
+            <div class="mascot" id="mascot" aria-hidden="true"></div>
+            <span class="type-wrap">
+              <!-- invisible copy of the line the heading shows: holds the
+                   width, so neither the text nor Swiftee beside it moves as
+                   the words arrive -->
+              <span class="type-ghost" id="promptGhost"></span>
+              <span class="type" id="promptType" aria-live="polite"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+            <!-- Swiftee's reaction to an answer, for the screen reader only: on
+                 the board the bird and the sound do the acknowledging -->
+            <span class="quip" id="quip" aria-live="polite"></span>
+          </h2>
+        </header>
+
+        <section class="bay" id="bay">
+          <!-- Cell 1 -->
+          <div class="cell">
+            <div class="shape-stage">
+              <div class="shape" data-shape="rect" role="img" aria-label="A rectangle" data-i18n-attr="aria-label:ariaRectangle">
+                <!-- overflow is visible, so the dimension labels sit outside the
+                     viewBox without changing the artwork's layout box -->
+                <svg viewBox="-40 0 320 170" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+                  <defs>
+                    <clipPath id="wipeRect"><rect class="wipe" x="0" y="0" width="240" height="132" /></clipPath>
+                  </defs>
+                  <g class="art">
+                    <rect class="shape-fill" clip-path="url(#wipeRect)"
+                          x="4" y="4" width="232" height="124" />
+                    <path class="shape-outline" d="M4 4 H236 V128 H4 Z" fill="none" stroke-width="5" />
+                  </g>
+                  <!-- shown in round 2, after the first wrong drop -->
+                  <g class="labels">
+                    <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="144" x2="236" y2="144" /><path class="wdim-head" d="M9.6 140.5 L4 144 L9.6 147.5 M230.4 140.5 L236 144 L230.4 147.5" /><text class="shape-label" x="120" y="160" font-size="13" text-anchor="middle" data-i18n="labelLength">length</text></g>
+                    <g class="wdim wdim-v"><line class="wdim-line" x1="252" y1="4" x2="252" y2="128" /><path class="wdim-head" d="M248.5 9.6 L252 4 L255.5 9.6 M248.5 122.4 L252 128 L255.5 122.4" /><text class="shape-label" x="268" y="66" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 268 66)" data-i18n="labelBreadth">breadth</text></g>
+                  </g>
+                </svg>
+              </div>
+            </div>
+            <!-- both rounds' slots exist from the first frame so the bay never
+                 changes height between levels -->
+            <div class="dock">
+              <div class="slot" data-round="1" data-accept="rect" aria-label="Name of the first shape" data-i18n-attr="aria-label:ariaNameFirst"></div>
+              <div class="slot" data-round="2" data-accept="rect" aria-label="Area of the first shape" data-i18n-attr="aria-label:ariaAreaFirst"></div>
+            </div>
+          </div>
+
+          <!-- Cell 2 -->
+          <div class="cell">
+            <div class="shape-stage">
+              <div class="shape" data-shape="square" role="img" aria-label="A square" data-i18n-attr="aria-label:ariaSquare">
+                <svg viewBox="-40 0 240 200" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+                  <defs>
+                    <clipPath id="wipeSquare"><rect class="wipe" x="0" y="0" width="160" height="160" /></clipPath>
+                  </defs>
+                  <g class="art">
+                    <rect class="shape-fill" clip-path="url(#wipeSquare)"
+                          x="4" y="4" width="152" height="152" />
+                    <path class="shape-outline" d="M4 4 H156 V156 H4 Z" fill="none" stroke-width="5" />
+                  </g>
+                  <g class="labels">
+                    <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="170" x2="156" y2="170" /><path class="wdim-head" d="M9.6 166.5 L4 170 L9.6 173.5 M150.4 166.5 L156 170 L150.4 173.5" /><text class="shape-label" x="80" y="186" font-size="13" text-anchor="middle" data-i18n="labelSide">side</text></g>
+                    <g class="wdim wdim-v"><line class="wdim-line" x1="172" y1="4" x2="172" y2="156" /><path class="wdim-head" d="M168.5 9.6 L172 4 L175.5 9.6 M168.5 150.4 L172 156 L175.5 150.4" /><text class="shape-label" x="188" y="80" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 188 80)" data-i18n="labelSide">side</text></g>
+                  </g>
+                </svg>
+              </div>
+            </div>
+            <div class="dock">
+              <div class="slot" data-round="1" data-accept="square" aria-label="Name of the second shape" data-i18n-attr="aria-label:ariaNameSecond"></div>
+              <div class="slot" data-round="2" data-accept="square" aria-label="Area of the second shape" data-i18n-attr="aria-label:ariaAreaSecond"></div>
+            </div>
+          </div>
+
+          <!-- Cell 3 -->
+          <div class="cell">
+            <div class="shape-stage">
+              <div class="shape" data-shape="triangle" role="img" aria-label="A triangle" data-i18n-attr="aria-label:ariaTriangle">
+                <svg viewBox="-45 0 290 210" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+                  <defs>
+                    <clipPath id="wipeTri"><rect class="wipe" x="0" y="0" width="200" height="172" /></clipPath>
+                  </defs>
+                  <g class="art">
+                    <polygon class="shape-fill" clip-path="url(#wipeTri)"
+                             points="100,6 195,166 5,166" />
+                    <path class="shape-outline" d="M100 6 L195 166 L5 166 Z" fill="none" stroke-width="5" />
+                  </g>
+                  <g class="labels">
+                    <line class="height-line" x1="100" y1="10" x2="100" y2="166" />
+                    <g class="wdim wdim-h"><line class="wdim-line" x1="5" y1="182" x2="195" y2="182" /><path class="wdim-head" d="M10.6 178.5 L5 182 L10.6 185.5 M189.4 178.5 L195 182 L189.4 185.5" /><text class="shape-label" x="100" y="198" font-size="13" text-anchor="middle" data-i18n="labelBase">base</text></g>
+                    <g class="wdim wdim-v"><line class="wdim-line" x1="-14" y1="6" x2="-14" y2="166" /><path class="wdim-head" d="M-17.5 11.6 L-14 6 L-10.5 11.6 M-17.5 160.4 L-14 166 L-10.5 160.4" /><text class="shape-label" x="-30" y="86" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 -30 86)" data-i18n="labelHeight">height</text></g>
+                  </g>
+                </svg>
+              </div>
+            </div>
+            <div class="dock">
+              <div class="slot" data-round="1" data-accept="triangle" aria-label="Name of the third shape" data-i18n-attr="aria-label:ariaNameThird"></div>
+              <div class="slot" data-round="2" data-accept="triangle" aria-label="Area of the third shape" data-i18n-attr="aria-label:ariaAreaThird"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- page 3: the triangle lesson ----------
+             Shares the bay's grid cell and is invisible until the warm-up has
+             cleared away. Each triangle is built like the warm-up shapes -- an
+             outline path that draws itself, a fill that pours in behind a clip --
+             plus a set of dotted dimension lines the script grows into place and
+             lights up as the formula names them. One viewBox for all three, so the
+             bases sit on one line. -->
+        <section class="lesson" id="lesson" aria-hidden="true">
+          <div class="tri-row" id="triRow">
+
+            <!-- acute (isosceles): the height stands inside it -->
+            <div class="tri-cell">
+              <div class="tri" data-tri="acute" role="img" aria-label="An acute triangle" data-i18n-attr="aria-label:ariaAcuteTriangle">
+                <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                  <defs>
+                    <clipPath id="wipeTriA"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
+                  </defs>
+                  <g class="art">
+                    <polygon class="shape-fill" clip-path="url(#wipeTriA)" points="120,16 218,176 22,176" />
+                    <path class="shape-outline" d="M120 16 L218 176 L22 176 Z" fill="none" stroke-width="5" />
+                  </g>
+                  <g class="dims">
+                    <line class="dim dim-base"   x1="22"  y1="186" x2="218" y2="186" />
+                    <line class="dim dim-height" x1="120" y1="16"  x2="120" y2="176" />
+                    <path class="dim-mark" d="M132 176 V164 H120" />
+                    <text class="dim-label lbl-base" x="120" y="203" font-size="13" text-anchor="middle" data-i18n="labelBaseCap">Base</text>
+                    <text class="dim-label lbl-height" x="133" y="98" font-size="13" text-anchor="middle"
+                          dominant-baseline="middle" transform="rotate(-90 133 98)" data-i18n="labelHeightCap">Height</text>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- right-angled (scalene): the height is one of its own sides -->
+            <div class="tri-cell">
+              <div class="tri" data-tri="right" role="img" aria-label="A right-angled scalene triangle" data-i18n-attr="aria-label:ariaRightTriangle">
+                <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                  <defs>
+                    <clipPath id="wipeTriB"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
+                  </defs>
+                  <g class="art">
+                    <polygon class="shape-fill" clip-path="url(#wipeTriB)" points="30,26 214,176 30,176" />
+                    <path class="shape-outline" d="M30 26 L214 176 L30 176 Z" fill="none" stroke-width="5" />
+                  </g>
+                  <g class="dims">
+                    <line class="dim dim-base"   x1="30" y1="186" x2="214" y2="186" />
+                    <line class="dim dim-height" x1="20" y1="26"  x2="20"  y2="176" />
+                    <path class="dim-mark" d="M42 176 V164 H30" />
+                    <text class="dim-label lbl-base" x="122" y="203" font-size="13" text-anchor="middle" data-i18n="labelBaseCap">Base</text>
+                    <text class="dim-label lbl-height" x="9" y="101" font-size="13" text-anchor="middle"
+                          dominant-baseline="middle" transform="rotate(-90 9 101)" data-i18n="labelHeightCap">Height</text>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- obtuse: the height falls outside it, onto the base extended -->
+            <div class="tri-cell">
+              <div class="tri" data-tri="obtuse" role="img" aria-label="An obtuse triangle" data-i18n-attr="aria-label:ariaObtuseTriangle">
+                <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                  <defs>
+                    <clipPath id="wipeTriC"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
+                  </defs>
+                  <g class="art">
+                    <polygon class="shape-fill" clip-path="url(#wipeTriC)" points="40,22 226,176 118,176" />
+                    <path class="shape-outline" d="M40 22 L226 176 L118 176 Z" fill="none" stroke-width="5" />
+                  </g>
+                  <g class="dims">
+                    <line class="dim dim-base"   x1="118" y1="186" x2="226" y2="186" />
+                    <!-- the base carried on to meet the height -->
+                    <line class="dim dim-ext"    x1="118" y1="176" x2="40"  y2="176" />
+                    <line class="dim dim-height" x1="40"  y1="22"  x2="40"  y2="176" />
+                    <path class="dim-mark" d="M52 176 V164 H40" />
+                    <text class="dim-label lbl-base" x="172" y="203" font-size="13" text-anchor="middle" data-i18n="labelBaseCap">Base</text>
+                    <text class="dim-label lbl-height" x="29" y="100" font-size="13" text-anchor="middle"
+                          dominant-baseline="middle" transform="rotate(-90 29 100)" data-i18n="labelHeightCap">Height</text>
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- the area formula, typed out word by word; js/learn.js builds the
+               word spans in both the ghost and the live line so the box is sized
+               to the whole formula before the first character lands -->
+          <div class="formula-box" id="formulaBox" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost" id="formulaGhost"></span>
+              <span class="type" id="formulaType"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+          </div>
+        </section>
+
+        <!-- One console band, two decks of cards stacked in it: round 2's deck is
+             laid over round 1's, so the band is the same height all level long. -->
+        <div class="tray-area" id="trayArea">
+          <div class="tray" id="tray" data-round="1">
+            <button class="chip" type="button" data-round="1" data-word="rect"><span data-i18n="shapeRectangle">Rectangle</span></button>
+            <button class="chip" type="button" data-round="1" data-word="triangle"><span data-i18n="shapeTriangle">Triangle</span></button>
+            <button class="chip" type="button" data-round="1" data-word="square"><span data-i18n="shapeSquare">Square</span></button>
+          </div>
+          <div class="tray" id="tray2" data-round="2">
+            <button class="chip formula" type="button" data-round="2" data-word="rect"><span data-i18n-html="formulaRectangle">Length &times; Breadth</span></button>
+            <button class="chip formula" type="button" data-round="2" data-word="triangle"><span data-i18n-html="formulaTriangle"><span class="frac"><span class="num">1</span><span class="den">2</span></span> &times; Base &times; Height</span></button>
+            <button class="chip formula" type="button" data-round="2" data-word="square"><span data-i18n-html="formulaSquare">(Side)<sup>2</sup></span></button>
+          </div>
+        </div>
+
+        <!-- Next: sits in the board's bottom right corner once a page is
+             over, clear of the (by then empty) card decks. -->
+        <button class="next-btn" id="nextBtn" type="button" hidden>
+          <span class="sr-only" data-i18n="nextButton">Next</span>
+          <svg class="next-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#ico-next" /></svg>
+        </button>
+
+      </main>
+    </div>
+
+    <!-- Swiftee's stand-in for a hop across the board: it sits after the
+         board, so it paints over it, and js/learn.js hands the sprite to it
+         for the length of the arc. -->
+    <div class="flyer" id="flyer" aria-hidden="true"></div>
+
+    <!-- confetti / particle layer -->
+    <div class="learn-fx" id="learnFx" aria-hidden="true"></div>
+
+    <!-- swallows every pointer event while a line is being said -->
+    <div class="input-lock" id="inputLock" aria-hidden="true"></div>
+
+    <!-- Skip: take me to the end of this page. Stacked above the input
+         lock, because while a page is playing is exactly when it is
+         wanted; bottom-left, clear of the mission's own "<" / ">" nav. -->
+    <div class="learn-tools">
+      <button class="tool-btn" id="skipBtn" type="button" hidden
+              aria-label="Skip this section" title="Skip this section"
+              data-i18n-attr="aria-label:skipTitle;title:skipTitle">
+        <span data-i18n="skipButton">Skip</span>
+        <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 5l7 7-7 7" />
+          <path d="M14 5l7 7-7 7" />
+        </svg>
       </button>
     </div>
 
@@ -366,11 +567,11 @@
 
 
   <!-- ══════════════════════════ SCREEN NAV ══════════════════════════ -->
-  <nav class="nav" id="nav" aria-label="Screen navigation">
-    <button class="nav__btn" id="navPrev" type="button" aria-label="Previous screen">
+  <nav class="nav" id="nav" aria-label="Screen navigation" data-i18n-attr="aria-label:navAria">
+    <button class="nav__btn" id="navPrev" type="button" aria-label="Previous screen" data-i18n-attr="aria-label:navPrev">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7" /></svg>
     </button>
-    <button class="nav__btn" id="navNext" type="button" aria-label="Next screen">
+    <button class="nav__btn" id="navNext" type="button" aria-label="Next screen" data-i18n-attr="aria-label:navNext">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
     </button>
   </nav>
@@ -383,16 +584,15 @@
          in type here rather than painted into the backdrop, so it
          scales with the frame and is read out as a heading. -->
     <h1 class="gate__title">
-      <span>Spaceship</span>
-      <span>Mission</span>
+      <span data-i18n="gateTitle1">Spaceship</span>
+      <span data-i18n="gateTitle2">Mission</span>
     </h1>
 
     <!-- The craft under power. The artwork paints its nozzles but no
          exhaust, so the burn is built here: a .gate__thrust hung at
          the main bell, and inside it the cones that make up the
          flame. It comes BEFORE the hull in source order, so the hull
-         paints over its mouth. The nacelles' attitude thrusters are
-         left cold — the drive at the back is the one that is lit. -->
+         paints over its mouth. -->
     <div class="gate__ship" aria-hidden="true">
       <div class="gate__ship-inner">
 
@@ -424,7 +624,7 @@
                is in stays in the accessibility tree, since that is the
                only thing that tells a screen reader what is happening -->
           <p class="gate__status" role="status" aria-live="polite">
-            <span class="gate__stat sr-only" id="gateStatus">Booting mission systems</span>
+            <span class="gate__stat sr-only" id="gateStatus" data-i18n="gateBoot">Booting mission systems</span>
             <b class="gate__pct" id="gatePct">0%</b>
           </p>
         </div>
@@ -437,7 +637,7 @@
           </svg>
           <i class="gate__spark gate__spark--l" aria-hidden="true"><b></b><b></b><b></b></i>
           <i class="gate__spark gate__spark--r" aria-hidden="true"><b></b><b></b><b></b></i>
-          <span class="sr-only">Start the mission</span>
+          <span class="sr-only" data-i18n="gateStart">Start the mission</span>
         </button>
 
       </div>
@@ -457,21 +657,49 @@
      count, smallest first, five at a time, and hands each one back
      as a blob: URL. Before audio.js, which adopts those URLs. -->
 <script src="js/preload.js"></script>
+<!-- the words: every line and every clip by key, from
+     locales/locales.json. Before audio.js, which names its clips
+     through it. -->
+<script src="js/i18n.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/waveform.js"></script>
 <script src="js/typewriter.js"></script>
 <script src="js/animation.js"></script>
 <!-- the landing and its two failures. After animation.js (it uses
      the same GeoLife-backed wait) and before script.js, which calls
-     GeoFail from every one of screens 3 to 8. -->
+     GeoFail from every landing site. -->
 <script src="js/failure.js"></script>
-<!-- screens 4-8: the shape data and the markup built from it. Before
-     script.js, which asks it for the rounds while it is booting. -->
+<!-- the playing screens: the shape data and the markup built from
+     it. Before script.js, which asks it for the screens while it is
+     booting. -->
 <script src="js/pages.js"></script>
 <!-- the water. After pages.js, whose measured silhouettes every
      shoreline is built from, and before script.js, which calls
-     GeoWater.init() from boot() once the round screens exist. -->
+     GeoWater.init() from boot() once the screens exist. -->
 <script src="js/water.js"></script>
-<script src="js/script.js"></script>
+<!-- the lesson's motion system, in the one order it can load in:
+     GSAP, then the Flip plugin it registers, then js/motion.js which
+     holds every duration and easing the lesson uses, then the
+     mascot's sprite sheets and the lesson itself. All local --
+     nothing here reaches the network. -->
+<script src="js/libs/gsap.min.js"></script>
+<script src="js/libs/Flip.min.js"></script>
+<script src="js/motion.js"></script>
+<script src="js/swiftee-sheets.js"></script>
+<script src="js/learn.js"></script>
+<!-- The mission comes last, and only once the locale is in: i18n.js
+     reads ?lan=xx from the URL, loads locales/locales.json (or the
+     generated locales/locales.js when a file:// page cannot fetch
+     it), fills every data-i18n* attribute above, and only then loads
+     the flow -- so every line it builds is already in the chosen
+     language. -->
+<script>
+  I18n.load(function () {
+    I18n.applyStatic(document);
+    var s = document.createElement('script');
+    s.src = 'js/script.js';
+    document.body.appendChild(s);
+  });
+</script>
 </body>
 </html>
