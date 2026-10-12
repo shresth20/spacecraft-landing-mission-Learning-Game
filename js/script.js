@@ -68,6 +68,14 @@
    step instead of firing captions and voice lines over the screen
    the player just moved to.
 
+   The SCENE TOOLS (near the bottom) are the learning module's own
+   way around a mission, brought over as they were: a menu of every
+   section, and Back / Skip / Sound / Replay. A section is one site
+   of a playing screen, one page of the lesson, or the cockpit; a
+   skip runs the section in play out to its end rather than
+   abandoning it, with every wait collapsed and every line put up
+   whole.
+
    Words: nothing the player reads or hears is written here. Every
    line is a KEY into locales/locales.json (T below), and its clip
    is named by the same key (see js/audio.js).
@@ -76,8 +84,31 @@
 (function (global) {
   'use strict';
 
-  var A = global.GeoAudio;
-  var M = global.GeoMotion;
+  /* ---------- the scene tools' fast-forward ----------
+   * Skip (SCENE TOOLS, below) plays a section out rather than
+   * abandoning it: while it runs, every wait the flow takes through
+   * M collapses to a single turn of the loop, every line is put up
+   * whole instead of spoken (narrate), and every cue is left
+   * unsounded. The engines themselves are untouched -- A and M here
+   * are the mission's own views of them, and the only places the
+   * flag is read besides narrate() and fly(). */
+  var fastForward = false;
+
+  var A = (function (G) {
+    var w = {};
+    Object.keys(G).forEach(function (k) { w[k] = G[k]; });
+    w.sfx = function (key, opts) { return fastForward ? Promise.resolve() : G.sfx(key, opts); };
+    w.say = function (key, opts) { return fastForward ? M.wait(0) : G.say(key, opts); };
+    return w;
+  })(global.GeoAudio);
+
+  var M = (function (G) {
+    var w = {};
+    Object.keys(G).forEach(function (k) { w[k] = G[k]; });
+    w.wait = function (ms) { return G.wait(fastForward ? 0 : ms); };
+    return w;
+  })(global.GeoMotion);
+
   var W = global.GeoWave;
   var TW = global.GeoType;
 
@@ -108,6 +139,7 @@
   var launched = false;
 
   var runId = 0;            // bumped on every jump
+  var seqId = 0;            // the sequence in play, 0 between them
   var current = 0;          // index into SCREENS
   var busy = false;         // a swap is in flight
   var ABORT = { abort: true };
@@ -123,7 +155,9 @@
       'confetti', 'advanceBtn',
       'landHud', 'landCaption', 'landTally',
       'veil', 'gate', 'gateBtn', 'gateLoad', 'gateFill',
-      'gateStatus', 'gatePct', 'nav', 'navPrev', 'navNext'
+      'gateStatus', 'gatePct', 'nav', 'navPrev', 'navNext',
+      'jump', 'jumpBtn', 'jumpMenu', 'jumpLabel',
+      'backBtn', 'skipBtn', 'muteBtn', 'resetBtn'
     ].forEach(function (id) { el[id] = document.getElementById(id); });
   }
 
@@ -133,6 +167,7 @@
   function sequence(steps) {
     var id = ++runId;
     var chain = Promise.resolve();
+    seqId = id;
 
     steps.forEach(function (step) {
       chain = chain.then(function () {
@@ -141,7 +176,12 @@
       });
     });
 
-    return chain.catch(function (e) {
+    /* over, however it ended: what a skip reads as "nothing left to
+       run to" (SCENE TOOLS) */
+    return chain.then(function () {
+      if (seqId === id) seqId = 0;
+    }, function (e) {
+      if (seqId === id) seqId = 0;
       if (e !== ABORT) throw e;
     });
   }
@@ -174,6 +214,12 @@
      GeoType reads currentTime off it. See js/typewriter.js. */
   function narrate(bar, key, text) {
     if (text == null) text = T(key);
+
+    /* a skip: the whole line goes up at once, and nothing is said */
+    if (fastForward) {
+      TW.set(bar, text);
+      return M.wait(0);
+    }
 
     /* A line with no clip recorded for it yet: the typing is clocked
        off the typewriter's own reading rate and the flow waits for
@@ -230,6 +276,7 @@
 
   function runCockpit() {
     W.start();
+    enterSection(current, 0);           /* the one section this screen is */
 
     return sequence([
       function () { return M.wait(700); },
@@ -454,13 +501,20 @@
     M.camSet(round.node, wideState(round));
   }
 
-  function runRound(round) {
+  function runRound(round, opts) {
     W.stop();
 
     var e = round.el;
     var sites = round.sites;
 
+    /* the site to open on: the first, unless the scene tools asked
+       for one further along the itinerary. Entered there, the screen
+       skips its opening lines and comes down straight onto it, with
+       every shape site behind it already answered. */
+    var from = Math.max(0, Math.min(sites.length - 1, (opts && opts.site) | 0));
+
     R = null;
+    noteSection(current, from);
 
     /* The lens starts its loiter now that the screen is on -- see the
        note at the end of resetRound(). Long enough that nothing on
@@ -472,7 +526,7 @@
 
     var steps = [];
 
-    if (round.intro) {
+    if (round.intro && from === 0) {
       /* ── the survey's opening: the dark, and the scan ── */
       steps.push(
         /* the bar drops in empty and then carries every line on this
@@ -517,6 +571,17 @@
           return M.wait(airborne ? 900 : 300);
         }
       );
+    } else if (round.intro) {
+      /* ── the survey entered past its opening: the scan has been
+         and gone, so the lights are already up ── */
+      steps.push(function () {
+        e.bg.classList.add('is-lit');
+        e.blackout.classList.add('is-clear');
+        e.bezel.classList.add('is-retired');
+        A.duckAmbience(0.16, 900);
+        altTo(round, 'altSurvey');
+        return M.wait(airborne ? 900 : 300);
+      });
     } else {
       /* ── a screen opens on the water, at height ── */
       steps.push(function () {
@@ -529,13 +594,19 @@
     steps.push(
       /* --- the archipelago breaks the surface --- */
       function () {
+        /* a shape site behind the one being entered has been
+           answered by now: the green is off its islands, and its
+           two decoys stay under (emerge leaves them out) */
+        sites.forEach(function (site, i) {
+          if (i < from && site.kind === 'shape') site.el.pads.classList.add('is-cleared');
+        });
         altTo(round, 'altContact');
-        return emerge(round, sites[0]);
+        return emerge(round, sites[from], from);
       },
       function () { return M.wait(420); }
     );
 
-    if (round.kind === 'landing') {
+    if (round.kind === 'landing' && from === 0) {
       /* ── back from the lesson: the two lines that pick the mission
          up again are said from the air, over the whole archipelago,
          before the lens comes down on the first landing site. The
@@ -564,7 +635,11 @@
     /* ── the itinerary: down on the first site, and then up, across
        and down onto each of the others ── */
     sites.forEach(function (site, i) {
-      if (i === 0) descentSteps(round, site, steps);
+      if (i < from) return;
+      /* the section boundary the scene tools read: a skip runs to
+         here and no further, and the menu marks where we are */
+      steps.push(function () { enterSection(current, i); });
+      if (i === from) descentSteps(round, site, steps);
       else transitSteps(round, sites[i - 1], site, steps);
 
       if (site.kind === 'shape') shapeSteps(round, site, i, steps);
@@ -894,7 +969,8 @@
      reduced motion the lens CUTS to where the flight would have
      ended, and nothing follows anything. */
   function fly(round, keys, ms, opts) {
-    if (!airborne) {
+    /* a skip cuts too: the lens is parked where the flight was going */
+    if (!airborne || fastForward) {
       M.camSet(round.node, keys[keys.length - 1]);
       return M.wait(M.reduced() ? 200 : 0);
     }
@@ -920,9 +996,15 @@
      distance does both -- and only the sites' islands throw a front
      into the water: the islets are scenery, and twenty-odd fronts at
      once would be a storm. */
-  function emerge(round, first) {
+  function emerge(round, first, from) {
     var pads = [];
-    round.sites.forEach(function (site) { pads = pads.concat(site.el.padList); });
+    round.sites.forEach(function (site, i) {
+      /* a shape site behind the one being entered (a jump into the
+         middle of the itinerary) comes up already answered: its two
+         decoys never surface, as they would have gone under by now */
+      var list = (i < (from | 0) && site.kind === 'shape') ? roundMatches(site) : site.el.padList;
+      pads = pads.concat(list);
+    });
     var all = round.islets.concat(pads);
 
     var rows = all.map(function (isl) {
@@ -944,7 +1026,7 @@
       } else if (i % 3 === 0) {
         A.sfx('rock', { volume: 0.13, rate: 1.18 + (i % 4) * 0.05 });
       }
-    }, { gap: gap, settle: 900 });
+    }, fastForward ? { gap: 1, settle: 0 } : { gap: gap, settle: 900 });
   }
 
   /* Where a site is being SHOWN, for the bracket: the box round its
@@ -1346,7 +1428,7 @@
     return M.sinkZones(others, function (pad, i) {
       A.sfx('rock', { volume: 0.6, rate: [0.88, 0.95][i % 2] });
       SEA.close(pad);
-    }, { gap: 620 });
+    }, fastForward ? { gap: 1, settle: 0 } : { gap: 620 });
   }
 
 
@@ -1594,14 +1676,14 @@
     if (global.GeoLearn) global.GeoLearn.reset();
   }
 
-  function runLearn() {
+  function runLearn(opts) {
     W.stop();
     A.duckAmbience(0.12, 900);
 
     return sequence([
       function (id) {
         if (!global.GeoLearn) return;
-        return global.GeoLearn.run().then(function (done) {
+        return global.GeoLearn.run(opts).then(function (done) {
           if (done && live(id) && canAdvance()) return goTo(current + 1);
         });
       }
@@ -1612,9 +1694,13 @@
   /* ============================================================
      SCREENS + NAV
      ============================================================ */
+  /* `round` is the itinerary a playing screen carries, for the scene
+     tools to name its sites by -- the survey's arrives at boot
+     (wireSurvey), so it is read when asked for rather than copied */
   var SCREENS = [
     { node: function () { return el.screenCockpit; }, reset: resetCockpit, run: runCockpit },
-    { node: function () { return el.screenDrone; },   reset: resetSurvey,  run: runSurvey },
+    { node: function () { return el.screenDrone; },   reset: resetSurvey,  run: runSurvey,
+      round: function () { return survey; } },
     { node: function () { return el.screenLearn; },   reset: resetLearn,   run: runLearn }
   ];
 
@@ -1628,8 +1714,8 @@
     TW.clear(el.topbarText);
   }
 
-  function runSurvey() {
-    if (survey) return runRound(survey);
+  function runSurvey(opts) {
+    if (survey) return runRound(survey, opts);
     return sequence([
       function () { el.topbar.classList.add('is-on'); return M.wait(720); },
       function () { return narrate(el.topbarText, 'tooDark'); },
@@ -1656,7 +1742,8 @@
       SCREENS.push({
         node:  function () { return round.node; },
         reset: function () { resetRound(round); },
-        run:   function () { return runRound(round); }
+        run:   function (opts) { return runRound(round, opts); },
+        round: function () { return round; }
       });
       wireSites(round);
       round.el.advance.addEventListener('click', function () { onAdvance(round); });
@@ -1688,6 +1775,7 @@
   function syncNav() {
     el.navPrev.disabled = busy || current === 0;
     el.navNext.disabled = busy || current === SCREENS.length - 1;
+    armTools();
   }
 
   /* Is there a screen after this one? Asked by every NEXT button on
@@ -1713,10 +1801,15 @@
   /* Jump to a screen: abandon whatever was running, put the target
      back to its opening state, swap, then play its sequence.
      `silent` skips the audio cut, for the scripted launch hand-off
-     that is already mid-cue and should not be clipped. */
+     that is already mid-cue and should not be clipped.
+     `site` is handed to the screen, to open part-way along its
+     itinerary; `again` lets the screen in view be re-entered in
+     place -- it is put back under the veil, since it is the one the
+     player is looking at. Both are the scene tools'. */
   function goTo(index, opts) {
     opts = opts || {};
-    if (busy || index === current || index < 0 || index >= SCREENS.length) {
+    var again = !!opts.again && index === current;
+    if (busy || (index === current && !again) || index < 0 || index >= SCREENS.length) {
       return Promise.resolve();
     }
 
@@ -1724,14 +1817,16 @@
     var to = SCREENS[index];
 
     busy = true;
+    fastForward = false;                   // a jump ends a skip
     syncNav();
 
     runId++;                               // strand the running sequence
     if (!opts.silent) A.stopAll();
 
-    to.reset();
+    if (!again) to.reset();
 
-    return M.swapScreens(from.node(), to.node(), el.veil, 1300).then(function () {
+    return M.swapScreens(again ? null : from.node(), to.node(), el.veil, 1300,
+                         again ? function () { to.reset(); } : null).then(function () {
       current = index;
       busy = false;
       syncNav();
@@ -1739,9 +1834,338 @@
       /* the screen left behind goes back to its opening state too, so
          stepping back into it starts from the top rather than from
          wherever it was abandoned */
-      from.reset();
+      if (!again) from.reset();
 
-      return to.run();
+      return to.run({ site: opts.site | 0, page: opts.site | 0 });
+    });
+  }
+
+
+  /* ============================================================
+     SCENE TOOLS -- the section menu, and Back / Skip / Sound / Replay
+
+     The learning module's own way around a mission, brought over
+     as it was: the menu (bottom-left) lists every SECTION in the
+     order the mission plays them and jumps to any of them; the
+     four tools (bottom-right, beside the "<" / ">" nav) step back
+     a section, run the one in play out to its end, switch the
+     sound off, or play it again from the top.
+
+     A section is one site of a playing screen, one page of the
+     lesson, or the cockpit: the unit a skip runs to the end of and
+     the unit the menu names. The list is built from SCREENS and
+     the sites each carries, so it cannot drift out of step with
+     the mission. Where we are is reported by the screens
+     themselves (enterSection) as they reach each section.
+     ============================================================ */
+  var SECTIONS = [];            /* { screen, site, name } in mission order */
+  var secAt = [];               /* secAt[screen][site] -> index into SECTIONS */
+  var sectionIndex = -1;        /* where we are in that order */
+  var sectionSeq = 0;           /* bumped at every section boundary: what a skip watches */
+  var sectionHistory = [];      /* the sections played so far, most recent last */
+  var learnAt = -1;             /* the lesson's index into SCREENS */
+  var skipping = false;
+  var tripBtn = null;           /* the tool whose errand is running, for its `working` state */
+  var jumpOpts = [];
+
+  function shapeName(site, adj) {
+    var shape = site.shape || '';
+    return T((adj ? 'adj' : 'shape') + shape.charAt(0).toUpperCase() + shape.slice(1));
+  }
+
+  function sectionName(round, site) {
+    if (round.kind === 'survey') {
+      if (site.kind === 'gallery') return T('secSurveyGallery');
+      return T('secSurveyShape', { shape: shapeName(site, true) });
+    }
+    if (round.kind === 'landing') return T('secLandingSite', { shape: shapeName(site) });
+    return T(site.kind === 'shape' ? 'secRoundShape' : 'secRoundLanding', { shape: shapeName(site) });
+  }
+
+  function buildSections() {
+    SECTIONS = [];
+    secAt = [];
+    SCREENS.forEach(function (screen, s) {
+      var node = screen.node();
+      var names;
+      if (node === el.screenCockpit) {
+        names = [T('secCockpit')];
+      } else if (node === el.screenLearn) {
+        learnAt = s;
+        var L = global.GeoLearn;
+        names = (L && L.pages ? L.pages() : []).map(function (k) { return T(k); });
+        if (!names.length) names = [T('secLesson')];
+      } else {
+        var round = screen.round ? screen.round() : null;
+        names = round ? round.sites.map(function (site) { return sectionName(round, site); })
+                      : [T('secSurvey')];
+      }
+      secAt[s] = names.map(function (name, i) {
+        SECTIONS.push({ screen: s, site: i, name: name });
+        return SECTIONS.length - 1;
+      });
+    });
+  }
+
+  /* A section's opening, reported by the screen playing it: a round
+     at each site as the lens sets off for it, the lesson at each
+     page, the cockpit once. The boundary a skip stops at -- and if
+     one is running, its fast-forward ends here, so what follows
+     plays at its own pace. */
+  function enterSection(screen, site) {
+    sectionSeq++;
+    if (skipping) fastForward = false;
+    noteSection(screen, site);
+  }
+
+  /* Where we are. The history is kept as a path through the mission
+     rather than a browser trail: arriving somewhere we have already
+     been truncates back to it, so Back always means the section
+     before this one, and a replay is a no-op on it. */
+  function noteSection(screen, site) {
+    var row = secAt[screen];
+    if (!row || !row.length) return;
+    var i = row[Math.max(0, Math.min(row.length - 1, site | 0))];
+    sectionIndex = i;
+    var at = sectionHistory.indexOf(i);
+    if (at !== -1) sectionHistory.length = at + 1;
+    else sectionHistory.push(i);
+    markJump();
+    armTools();
+  }
+
+  /* every trip the tools make is this: the section's screen, put
+     back and entered at the section */
+  function enterAt(sec) {
+    return goTo(sec.screen, { site: sec.site, again: true });
+  }
+
+  /* ---- the menu ---- */
+  function buildJump() {
+    el.jumpMenu.textContent = '';
+    SECTIONS.forEach(function (sec, i) {
+      var opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = 'jump-opt';
+      opt.setAttribute('role', 'option');
+      opt.dataset.i = String(i);
+      var n = document.createElement('span');
+      n.className = 'jump-n';
+      n.textContent = String(i + 1);
+      var name = document.createElement('span');
+      name.className = 'jump-name';
+      name.textContent = sec.name;
+      opt.appendChild(n);
+      opt.appendChild(name);
+      opt.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openJump(false);
+        jumpTo(i);
+      });
+      el.jumpMenu.appendChild(opt);
+    });
+    jumpOpts = Array.prototype.slice.call(el.jumpMenu.querySelectorAll('.jump-opt'));
+  }
+
+  /* the button says where we are; the list says which one that is */
+  function markJump() {
+    var here = SECTIONS[sectionIndex];
+    el.jumpLabel.textContent = here ? here.name : T('jumpLabel');
+    jumpOpts.forEach(function (opt, i) {
+      opt.setAttribute('aria-selected', i === sectionIndex ? 'true' : 'false');
+      opt.classList.toggle('ahead', i > sectionIndex);
+    });
+  }
+
+  function openJump(on) {
+    el.jump.classList.toggle('open', !!on);
+    el.jumpBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on && jumpOpts.length) {
+      jumpOpts[Math.max(0, sectionIndex)].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function jumpTo(i) {
+    var sec = SECTIONS[i];
+    if (!sec || busy) return;
+    trip(el.jumpBtn);
+    enterAt(sec);
+  }
+
+  /* ---- the tools ---- */
+  function showTools() {
+    [el.backBtn, el.skipBtn, el.muteBtn, el.resetBtn].forEach(function (b) {
+      b.hidden = false;
+      void b.offsetHeight;
+      b.classList.add('in');
+    });
+    el.jump.hidden = false;
+    void el.jump.offsetHeight;
+    el.jump.classList.add('in');
+    armTools();
+  }
+
+  /* Which tools are any use right now. Back needs a section behind
+     this one; everything but the sound waits out a swap. The sound
+     switch is never taken away: a player who wants it off wants it
+     off now, whatever the screen is doing. */
+  function armTools() {
+    if (!el.backBtn) return;
+    el.backBtn.disabled = busy || sectionHistory.length < 2;
+    el.skipBtn.disabled = busy || skipping;
+    el.resetBtn.disabled = busy || sectionIndex < 0;
+    el.jumpBtn.disabled = busy;
+    el.muteBtn.disabled = false;
+    if (!busy && tripBtn) {
+      tripBtn.classList.remove('working');
+      tripBtn = null;
+    }
+  }
+
+  function trip(btn) {
+    if (tripBtn) tripBtn.classList.remove('working');
+    tripBtn = btn;
+    btn.classList.add('working');
+  }
+
+  function replaySection() {
+    var sec = SECTIONS[sectionIndex];
+    if (!sec || busy) return;
+    trip(el.resetBtn);
+    enterAt(sec);
+  }
+
+  function backSection() {
+    if (busy || sectionHistory.length < 2) return;
+    sectionHistory.pop();                 /* step out of the section we are in */
+    var sec = SECTIONS[sectionHistory[sectionHistory.length - 1]];
+    if (!sec) return;
+    trip(el.backBtn);
+    enterAt(sec);
+  }
+
+  /* ---- skip ----
+     The section in play is run out to its end, never abandoned:
+     waits collapse (M.wait), lines go up whole (narrate), the lens
+     cuts (fly), animations are finished frame by frame, and a step
+     waiting on the player is answered for them -- the matching
+     shapes picked, the craft put down on the island it fits. It
+     stops at the next section's opening (enterSection), at a NEXT
+     the screen is waiting on, or when the screen has nothing left
+     to run; and never spins forever. The lesson skips itself. */
+  function flushAnimations(node) {
+    if (!node || !node.getAnimations) return;
+    node.getAnimations({ subtree: true }).forEach(function (a) {
+      var timing = a.effect && a.effect.getComputedTiming();
+      if (!timing || timing.iterations === Infinity) return;
+      /* the craft's flight is clocked by js/failure.js, not by its
+         own animations: finishing those early would land it before
+         the chain watching it has caught up */
+      var target = a.effect && a.effect.target;
+      if (target && target.closest && target.closest('.ship')) return;
+      try { a.finish(); } catch (e) { /* not finishable; leave it running */ }
+    });
+  }
+
+  function playerStep() {
+    return !!(R && R.release &&
+      (R.phase === 'shape' || (R.phase === 'area' && !R.landing && !R.solved)));
+  }
+
+  function answerStep(site) {
+    if (site.phase === 'shape') {
+      roundMatches(site).forEach(function (pad) { onRoundShapePick(site, pad); });
+    } else if (site.phase === 'area') {
+      var ref = roundRef(site);
+      if (ref) onRoundAreaPick(site, ref);
+    }
+  }
+
+  function atNext(round) {
+    if (!round) return false;
+    if (round.advanceRelease) return true;
+    var btn = R && R.el && R.el.advance;
+    return !!(R && R.solved && btn && !btn.hidden);
+  }
+
+  function skipSection() {
+    if (busy || skipping) return;
+
+    if (current === learnAt) {
+      if (global.GeoLearn && global.GeoLearn.skip) global.GeoLearn.skip();
+      return;
+    }
+
+    var id = runId;
+    var from = sectionSeq;
+    var screen = SCREENS[current];
+    var node = screen.node();
+    var round = screen.round ? screen.round() : null;
+
+    skipping = true;
+    fastForward = true;
+    armTools();
+    A.stopVoice();                        /* the line being said is cut where it stands */
+
+    var deadline = performance.now() + 10000;
+    (async function () {
+      while (runId === id && seqId === id && sectionSeq === from &&
+             !atNext(round) && performance.now() < deadline) {
+        flushAnimations(node);
+        if (playerStep()) answerStep(R);
+        await new Promise(function (r) { requestAnimationFrame(r); });
+      }
+      flushAnimations(node);
+      fastForward = false;
+      skipping = false;
+      armTools();
+    })();
+  }
+
+  /* ---- sound off ----
+     js/motion.js holds the state and remembers it between sittings;
+     this is only the switch, and it reaches both engines: the
+     mission's (js/audio.js) and the lesson's own voice. */
+  function showMute() {
+    var off = !!(global.Motion && global.Motion.isMuted());
+    el.muteBtn.classList.toggle('muted', off);
+    el.muteBtn.setAttribute('aria-pressed', off ? 'true' : 'false');
+    var label = off ? T('soundOn') : T('soundOff');
+    el.muteBtn.setAttribute('aria-label', label);
+    el.muteBtn.setAttribute('title', label);
+  }
+
+  function applyMute() {
+    var off = !!(global.Motion && global.Motion.isMuted());
+    if (A.setMuted) A.setMuted(off);
+    if (global.GeoLearn && global.GeoLearn.setMuted) global.GeoLearn.setMuted(off);
+    showMute();
+  }
+
+  function wireTools() {
+    buildSections();
+    buildJump();
+    markJump();
+    applyMute();
+
+    el.jumpBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (busy) return;
+      openJump(!el.jump.classList.contains('open'));
+    });
+    el.jumpMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+    /* anywhere else, and Escape, closes it */
+    document.addEventListener('click', function () { openJump(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') openJump(false);
+    });
+
+    el.backBtn.addEventListener('click', backSection);
+    el.skipBtn.addEventListener('click', skipSection);
+    el.resetBtn.addEventListener('click', replaySection);
+    el.muteBtn.addEventListener('click', function () {
+      if (global.Motion) global.Motion.toggleMuted();
+      applyMute();
     });
   }
 
@@ -1987,6 +2411,7 @@
 
     el.gate.classList.add('is-gone');
     el.nav.classList.add('is-on');
+    showTools();
 
     /* Once its fade is over (.7s, css/style.css) the gate is taken
        out of the layout altogether. It never comes back, and left
@@ -2058,9 +2483,13 @@
     addRoundScreens();
     wireSurvey();
 
-    /* the lesson: its board, its mascot and its own engine */
+    /* the lesson: its board, its mascot and its own engine -- and the
+       scene tools hear from it as each of its pages opens */
     if (global.GeoLearn && el.screenLearn) {
-      global.GeoLearn.init({ screen: el.screenLearn });
+      global.GeoLearn.init({
+        screen: el.screenLearn,
+        onPage: function (page) { enterSection(learnAt, page); }
+      });
     }
 
     /* and after both, because every island on every screen needs a
@@ -2070,6 +2499,9 @@
     /* every playing screen in its opening state from the off -- after
        the water is in, because the lens parks the sea's own sheets */
     SCREENS.forEach(function (screen, i) { if (i > 0) screen.reset(); });
+
+    /* the scene tools, once every screen and site they list exists */
+    wireTools();
 
     runGate();
 

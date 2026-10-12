@@ -542,20 +542,9 @@
     <!-- swallows every pointer event while a line is being said -->
     <div class="input-lock" id="inputLock" aria-hidden="true"></div>
 
-    <!-- Skip: take me to the end of this page. Stacked above the input
-         lock, because while a page is playing is exactly when it is
-         wanted; bottom-left, clear of the mission's own "<" / ">" nav. -->
-    <div class="learn-tools">
-      <button class="tool-btn" id="skipBtn" type="button" hidden
-              aria-label="Skip this section" title="Skip this section"
-              data-i18n-attr="aria-label:skipTitle;title:skipTitle">
-        <span data-i18n="skipButton">Skip</span>
-        <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 5l7 7-7 7" />
-          <path d="M14 5l7 7-7 7" />
-        </svg>
-      </button>
-    </div>
+    <!-- Skip, Back, Replay and the section menu are the mission's own
+         now (SCENE TOOLS, below the nav): one set of tools for every
+         screen, this one included. -->
 
   </section>
 
@@ -575,6 +564,83 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
     </button>
   </nav>
+
+
+  <!-- ══════════════════════════ SCENE TOOLS ══════════════════════════
+       The learning module's way around a mission, brought over as it
+       was there: the section menu (bottom-left) lists every section
+       in the order the mission plays them and jumps to any of them;
+       Back / Skip / Sound / Replay (bottom-right, beside the nav) step
+       back a section, run the one in play out to its end, switch the
+       sound off, or play it again from the top. Their list and their
+       state are js/script.js's (SCENE TOOLS). Hidden until the mission
+       starts, with the nav. The menu opens upward because the button
+       sits on the floor of the screen. -->
+  <div class="jump" id="jump" hidden>
+    <button class="jump-btn" id="jumpBtn" type="button"
+            aria-haspopup="listbox" aria-expanded="false"
+            aria-label="Jump to a section" title="Jump to a section"
+            data-i18n-attr="aria-label:jumpTitle;title:jumpTitle">
+      <svg class="jump-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h10" />
+      </svg>
+      <span class="jump-label" id="jumpLabel" data-i18n="jumpLabel">Section</span>
+      <svg class="jump-caret" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 15l6-6 6 6" />
+      </svg>
+    </button>
+    <div class="jump-menu" id="jumpMenu" role="listbox" aria-label="Sections" data-i18n-attr="aria-label:jumpMenuAria"></div>
+  </div>
+
+  <div class="hud-tools">
+    <button class="tool-btn" id="backBtn" type="button" hidden
+            aria-label="Back to the previous section" title="Back to the previous section"
+            data-i18n-attr="aria-label:backTitle;title:backTitle">
+      <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 5l-7 7 7 7" />
+        <path d="M10 5l-7 7 7 7" />
+      </svg>
+      <span data-i18n="backButton">Back</span>
+    </button>
+    <button class="tool-btn" id="skipBtn" type="button" hidden
+            aria-label="Skip this section" title="Skip this section"
+            data-i18n-attr="aria-label:skipTitle;title:skipTitle">
+      <span data-i18n="skipButton">Skip</span>
+      <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 5l7 7-7 7" />
+        <path d="M14 5l7 7-7 7" />
+      </svg>
+    </button>
+    <!-- Sound off. One global mute, remembered between sittings; it
+         sits with the other tools because it is the same kind of
+         thing: a way around what the game is doing, not part of it.
+         The two icons are both in the markup and the class decides
+         which shows, so toggling it never touches the DOM. -->
+    <button class="tool-btn" id="muteBtn" type="button" hidden
+            aria-label="Sound off" title="Sound off" aria-pressed="false"
+            data-i18n-attr="aria-label:soundOff;title:soundOff">
+      <svg class="tool-icon tool-icon-on" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9v6h4l5 4V5L8 9H4z" />
+        <path d="M16.5 8.5a5 5 0 0 1 0 7" />
+        <path d="M19 6a8.5 8.5 0 0 1 0 12" />
+      </svg>
+      <svg class="tool-icon tool-icon-off" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9v6h4l5 4V5L8 9H4z" />
+        <path d="M17 9.5l4 5" />
+        <path d="M21 9.5l-4 5" />
+      </svg>
+      <span data-i18n="soundButton">Sound</span>
+    </button>
+    <button class="tool-btn" id="resetBtn" type="button" hidden
+            aria-label="Replay this section" title="Replay this section"
+            data-i18n-attr="aria-label:replayTitle;title:replayTitle">
+      <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="2 4 2 10 8 10" />
+        <path d="M4.6 15a8.5 8.5 0 1 0 2-8.8L2 10" />
+      </svg>
+      <span data-i18n="replayButton">Replay</span>
+    </button>
+  </div>
 
 
   <!-- ══════════════════════════ START GATE ══════════════════════════ -->

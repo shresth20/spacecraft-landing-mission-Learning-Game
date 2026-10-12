@@ -733,6 +733,11 @@
 
    Outside .surf__warp deliberately — a dash pattern moving inside
    a filtered group would re-run the filter on every frame. */
+/* The lace's own <svg> (see surfHTML() in js/water.js): promoted
+   from the start, so the dash it repaints every frame is never
+   painted into the layer the filtered waterline and shore are in. */
+.surf--lace { will-change: transform; }
+
 .surf__d1 {
   stroke: rgba(var(--sea-foam), .13);
   stroke-width: 1.2;
@@ -949,13 +954,24 @@
    to the land it is being pushed aside by */
 .zone.is-up .shore { animation: shoreWell 1.6s cubic-bezier(.2, .9, .3, 1),
                                 shoreSway 13s ease-in-out 1.6s infinite; }
-.zone.is-up .surf  { animation: surfWell 1.6s cubic-bezier(.2, .9, .3, 1),
-                                surfWobble 8.5s ease-in-out 1.6s infinite; }
+.zone.is-up .surf  { animation: surfWell 1.6s cubic-bezier(.2, .9, .3, 1); }
 
 .pad.is-up .shore { animation: shoreWell 1.25s cubic-bezier(.2, .9, .3, 1),
                                shoreSway 13s ease-in-out 1.25s infinite; }
-.pad.is-up .surf  { animation: surfWell 1.25s cubic-bezier(.2, .9, .3, 1),
-                               surfWobble 8.5s ease-in-out 1.25s infinite; }
+.pad.is-up .surf  { animation: surfWell 1.25s cubic-bezier(.2, .9, .3, 1); }
+
+/* The idle wobble rides on the LACE only. On the filtered waterline
+   it was the most expensive loop on the screen: Chrome kept a share
+   of those transform loops on the main thread, and every frame of
+   them re-ran each island's turbulence filter -- measurably the
+   source of the patchy, flickering tiles over the sea while the
+   lens moves. The lace repaints every frame anyway (its dash
+   travels), so it carries the slosh for free; the rise, the rock
+   and the sink still move both together. */
+.zone.is-up .surf--lace { animation: surfWell 1.6s cubic-bezier(.2, .9, .3, 1),
+                                     surfWobble 8.5s ease-in-out 1.6s infinite; }
+.pad.is-up .surf--lace  { animation: surfWell 1.25s cubic-bezier(.2, .9, .3, 1),
+                                     surfWobble 8.5s ease-in-out 1.25s infinite; }
 
 /* the ripple train starts once the island is standing, and the
    three copies are phased so one is always leaving */

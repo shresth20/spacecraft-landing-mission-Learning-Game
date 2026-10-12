@@ -99,6 +99,13 @@
   var oneShots = [];            // SFX still in flight
   var held = [];                // what we paused when the tab went away
 
+  /* The scene tools' Sound switch. Muting silences every element
+     rather than stopping it: a line keeps its length and the caption
+     clocked off it keeps typing, so the flow is the same with the
+     sound off as with it on. New elements inherit the state as they
+     are built. */
+  var muted = false;
+
   /* ---------------------------------------------------------- helpers */
   var local = {};               // remote URL -> blob: URL, from the start gate
 
@@ -184,6 +191,7 @@
     el.src = url(src);
     el._geoSrc = src;
     el.volume = 1;
+    el.muted = muted;
     return el;
   }
 
@@ -365,6 +373,7 @@
     opts = opts || {};
 
     el.volume = opts.volume == null ? 0.7 : opts.volume;
+    el.muted = muted;
     if (opts.rate) el.playbackRate = opts.rate;
 
     /* `keep` holds a clip back from the oneShots list, which is the
@@ -488,6 +497,7 @@
     ambience.src = url(remote(AMBIENCE));
     ambience.loop = true;
     ambience.volume = 0;
+    ambience.muted = muted;
     var target = volume == null ? 0.24 : volume;
     var p = ambience.play();
     if (p && p.catch) p.catch(function () {});
@@ -499,6 +509,16 @@
       ambience.volume = clamp01(target * k);
       if (k < 1) requestAnimationFrame(ramp);
     })(t0);
+  }
+
+  /* ---------------------------------------------------------- sound off */
+  function isMuted() { return muted; }
+
+  function setMuted(on) {
+    muted = !!on;
+    if (ambience) ambience.muted = muted;
+    Object.keys(voices).forEach(function (k) { voices[k].muted = muted; });
+    oneShots.forEach(function (el) { el.muted = muted; });
   }
 
   function duckAmbience(to, ms) {
@@ -671,6 +691,8 @@
     isSpeaking: isSpeaking,
     startAmbience: startAmbience,
     duckAmbience: duckAmbience,
+    setMuted: setMuted,
+    isMuted: isMuted,
     fillSpectrum: fillSpectrum
   };
 })(window);

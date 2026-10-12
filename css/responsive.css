@@ -50,6 +50,17 @@
   .gate__inner { width: 88%; }
   .gate__load { width: min(74vw, 300px); }
   .gate__pct { font-size: 12px; letter-spacing: .08em; }
+
+  /* the scene tools: icons only, so the four of them and the nav
+     share one line; the section button keeps its name, shorter */
+  .tool-btn > span { display: none; }
+  .tool-btn { padding: 6px 9px; }
+  .hud-tools {
+    gap: 5px;
+    right: calc(max(14px, 2.2%) + 2 * clamp(40px, 2.9vw, 46px) + clamp(6px, .7vw, 12px) + 8px);
+  }
+  .jump-btn { max-width: 32vw; }
+  .jump-menu { min-width: 220px; max-width: 86vw; }
 }
 
 /* ---------------------------------------------------------- short / landscape phone */

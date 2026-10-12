@@ -618,7 +618,7 @@
     var list = Array.prototype.slice.call(zoneEls || []);
     if (!list.length) return Promise.resolve();
 
-    var gap = reduced() ? 120 : (opts.gap || 480);
+    var gap = reduced() ? 120 : (opts.gap != null ? opts.gap : 480);
 
     /* How long after the LAST island has been told to come up this
        resolves. 1600ms is the rise plus a beat, which is what a
@@ -653,8 +653,8 @@
     var list = Array.prototype.slice.call(zoneEls || []);
     if (!list.length) return Promise.resolve();
 
-    var gap = reduced() ? 120 : (opts.gap || 560);
-    var settle = reduced() ? 300 : 1450;
+    var gap = reduced() ? 120 : (opts.gap != null ? opts.gap : 560);
+    var settle = reduced() ? 300 : (opts.settle == null ? 1450 : opts.settle);
 
     list.forEach(function (el, i) {
       wait(i * gap).then(function () {
@@ -749,13 +749,18 @@
     return wait(last + 260).then(function () { confettiClear(host); });
   }
 
-  /* ---------------------------------------------------------- screen swap */
-  function swapScreens(from, to, veil, ms) {
+  /* ---------------------------------------------------------- screen swap
+     `onCovered` runs once the veil is fully up and before the screens
+     change places: the moment a screen that is being re-entered in
+     place (the scene tools' Replay) can be put back without the
+     player seeing it snap. */
+  function swapScreens(from, to, veil, ms, onCovered) {
     ms = ms || 1250;
 
     if (veil) veil.classList.add('is-on');
 
     return wait(ms * 0.42).then(function () {
+      if (onCovered) onCovered();
       if (from) {
         from.classList.add('is-leaving');
         from.classList.remove('is-active');

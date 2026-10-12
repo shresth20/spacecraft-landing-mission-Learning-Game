@@ -430,7 +430,19 @@
      Everything inside .surf__warp is displaced and otherwise
      still. The lace and the bubbles sit outside it, because a dash
      pattern or a transform moving INSIDE a filtered group would
-     re-run the filter on every frame. */
+     re-run the filter on every frame.
+
+     Outside the GROUP is not far enough for the lace: an <svg>
+     repaints as one piece, so a dash travelling anywhere in it
+     re-rasterises every tile the svg covers -- the turbulence
+     included -- on every frame, on every island at once. On a
+     retina screen that is more raster than the GPU keeps up with,
+     and the tiles that miss a frame are the patches and flicker
+     over the sea while the lens moves. So the lace is a second
+     <svg> of its own (.surf--lace), on its own compositor layer: it
+     still carries `.surf`, so it rises, wobbles, rocks and closes
+     with the waterline in lockstep, but its repaint is its own and
+     the filtered svg rasterises once. */
   function surfHTML(d, clipId, seed) {
     return '<svg class="surf" viewBox="0 0 100 100" ' +
                 'preserveAspectRatio="none" aria-hidden="true">' +
@@ -458,7 +470,10 @@
           path('surf__crest', d) + path('surf__edge', d) +
         '</g>' +
       '</g>' +
+    '</svg>' +
 
+    '<svg class="surf surf--lace" viewBox="0 0 100 100" ' +
+         'preserveAspectRatio="none" aria-hidden="true">' +
       '<g class="surf__lace">' +
         path('surf__d1', d) + path('surf__d2', d) +
       '</g>' +

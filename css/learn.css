@@ -635,16 +635,18 @@
 .screen--learn .formula-box .type-wrap { display: inline-block; vertical-align: top; }
 .screen--learn .formula-box .type { white-space: nowrap; }
 
-/* the two words the lesson is about: a highlighter sweeps in behind each the
-   moment it has finished typing */
+/* the two words the lesson is about: each takes the hue of the line it
+   names the moment it has finished typing -- plain coloured text, no pill
+   behind it, as in the learning module */
 .screen--learn .formula-box .w {
-  display: inline-block;
-  padding: 0 .18em;
-  border-radius: .32em;
-  transition: background-color .4s ease, color .4s ease;
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  transition: color .4s ease;
 }
-.screen--learn .formula-box .w.lit.w-base   { background: var(--base-hl);   color: var(--rock-dark); }
-.screen--learn .formula-box .w.lit.w-height { background: var(--height-hl); color: var(--board-highlight); }
+.screen--learn .formula-box .w.lit.w-base   { background: transparent; color: var(--base-hl); }
+.screen--learn .formula-box .w.lit.w-height { background: transparent; color: var(--height-hl); }
 
 /* ---------- next button ----------
  * The round pink arrow, in the board's bottom right corner. It shares the
@@ -917,8 +919,9 @@
 }
 .screen--learn .slot .chip.formula { font-size: calc(var(--fs-chip) * 1.3); }
 
-/* The clone that follows the pointer during a real drag. It rides on the
-   body, outside this screen, so it carries the chip's look with it. */
+/* The clone that follows the pointer during a real drag. It rides in the
+   screen's effects layer (.learn-fx), so every .screen--learn .chip rule
+   still reaches it; this only takes off what a chip at rest carries. */
 .chip.learn-ghost {
   --edge: 0px;
   --sink: 0px;
@@ -1037,63 +1040,10 @@
 .screen--learn .input-lock.on { display: block; }
 
 /* ---------- Skip ----------
- * Understated on purpose: a way around a page, not a thing to press. It
- * clears the input lock (900) so it stays live while a page is playing --
- * the only time it is any use. */
-.screen--learn .learn-tools {
-  position: fixed;
-  left: clamp(12px, 1.6vw, 26px);
-  bottom: clamp(12px, 1.6vh, 24px);
-  z-index: 940;
-  display: flex;
-  align-items: center;
-  gap: clamp(6px, .7vw, 10px);
-}
-.screen--learn .tool-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .34em;
-  font-family: inherit;
-  font-weight: 600;
-  font-size: var(--fs-small);
-  letter-spacing: .5px;
-  color: var(--text-primary);
-  padding: clamp(4px, .7vh, 7px) clamp(9px, 1.1vw, 14px);
-  border: 2px solid var(--drop-border);
-  border-radius: 999px;
-  background: var(--drop-bg);
-  box-shadow: 0 2px 8px var(--shadow-soft);
-  cursor: pointer;
-
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity .34s ease,
-              transform .34s ease,
-              color .16s ease,
-              border-color .16s ease,
-              background .16s ease;
-}
-.screen--learn .tool-btn[hidden] { display: none; }
-.screen--learn .tool-btn.in { opacity: .75; transform: none; }
-.screen--learn .tool-btn.in:hover,
-.screen--learn .tool-btn.in:focus-visible {
-  opacity: 1;
-  color: var(--button-text);
-  border-color: var(--button-border);
-  background: var(--button-bg);
-  outline: none;
-}
-.screen--learn .tool-btn.in:active { transform: translateY(1px); }
-.screen--learn .tool-btn:disabled { cursor: default; opacity: .4; }
-.screen--learn .tool-icon {
-  width: .82em;
-  height: .82em;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
+ * The lesson has no tools of its own any more: Skip, Back, Replay and
+ * the section menu are the mission's (SCENE TOOLS in css/style.css),
+ * drawn outside this screen and above its input lock, and they reach
+ * the lesson through GeoLearn.skip() and GeoLearn.run({ page }). */
 
 /* ---------- Swiftee's reaction, unseen ----------
  * The answer to a drop is never written in the heading area: the bird's

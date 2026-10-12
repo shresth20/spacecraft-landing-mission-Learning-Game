@@ -1971,6 +1971,230 @@ button { font: inherit; color: inherit; }
 
 
 /* ============================================================
+   SCENE TOOLS  (the section menu, bottom-left; Back / Skip /
+   Sound / Replay, bottom-right beside the nav)
+
+   The learning module's tools with their geometry intact -- the
+   pill, the three-quarters opacity until hovered, the menu that
+   opens upward and caps its height so a mission of any length
+   scrolls rather than running off the top -- in the mission's own
+   palette, the nav's. The same layer as the nav (30): over every
+   screen, and so over the lesson's input lock, which lives inside
+   its screen; under the veil (50) and the gate (40). Hidden until
+   the mission starts, with the nav.
+   ============================================================ */
+.jump,
+.hud-tools {
+  position: absolute;
+  bottom: max(14px, 2.6%);
+  z-index: 30;
+  /* the nav's height, so the pills sit centred on its buttons */
+  height: clamp(40px, 2.9vw, 46px);
+  display: flex;
+  align-items: center;
+}
+.jump { left: max(14px, 2.2%); }
+.hud-tools {
+  /* beside the nav: its two buttons, their gap, and a gap of our own */
+  right: calc(max(14px, 2.2%) + 2 * clamp(40px, 2.9vw, 46px) + clamp(6px, .7vw, 12px) + clamp(8px, 1vw, 14px));
+  gap: clamp(6px, .7vw, 10px);
+}
+
+.jump {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .34s ease, transform .34s ease;
+}
+.jump[hidden] { display: none; }
+.jump.in { opacity: .75; transform: none; }
+.jump.in:hover,
+.jump.in.open,
+.jump:focus-within { opacity: 1; }
+
+.jump-btn,
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4em;
+  font: inherit;
+  font-size: clamp(11px, 1.5vh, 14px);
+  font-weight: 700;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  color: rgba(200, 240, 255, .92);
+  padding: clamp(5px, .8vh, 8px) clamp(10px, 1.1vw, 14px);
+  border: 0;
+  border-radius: 999px;
+  background: rgba(6, 18, 36, .62);
+  box-shadow: inset 0 0 0 1px rgba(120, 205, 255, .32);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.jump-btn { max-width: min(46vw, 320px); }
+.jump-btn:hover,
+.jump-btn:focus-visible {
+  color: #eafaff;
+  background: rgba(16, 44, 78, .78);
+  box-shadow: inset 0 0 0 1px rgba(150, 225, 255, .6);
+  outline: none;
+}
+.jump-btn:focus-visible,
+.tool-btn:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgba(150, 225, 255, .6),
+    0 0 0 3px rgba(120, 220, 255, .85);
+}
+.jump-btn:disabled { cursor: default; opacity: .55; }
+
+.jump-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.jump-icon,
+.jump-caret,
+.tool-icon {
+  flex: 0 0 auto;
+  width: .9em;
+  height: .9em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.jump-caret { transition: transform .22s ease; }
+.jump.open .jump-caret { transform: rotate(180deg); }
+
+/* while it is fetching a section, the lines shuffle */
+#jumpBtn.working .jump-icon { animation: jumpWork .8s ease-in-out infinite; }
+@keyframes jumpWork {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(25%); }
+}
+
+.jump-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  min-width: max(280px, 100%);
+  max-width: min(76vw, 380px);
+  max-height: min(62vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(6, 18, 36, .94);
+  box-shadow:
+    inset 0 0 0 1px rgba(120, 205, 255, .4),
+    0 12px 32px rgba(0, 0, 0, .55);
+  backdrop-filter: blur(8px);
+  display: none;
+}
+.jump.open .jump-menu { display: block; }
+
+.jump-opt {
+  display: flex;
+  align-items: baseline;
+  gap: .55em;
+  width: 100%;
+  font: inherit;
+  font-size: clamp(11px, 1.5vh, 14px);
+  font-weight: 700;
+  text-align: left;
+  color: rgba(200, 240, 255, .92);
+  padding: clamp(5px, .8vh, 8px) clamp(8px, .9vw, 11px);
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+}
+.jump-opt:hover,
+.jump-opt:focus-visible {
+  color: #eafaff;
+  background: rgba(16, 44, 78, .78);
+  outline: none;
+}
+
+/* the number keeps its own column, so the names line up */
+.jump-n {
+  flex: 0 0 1.6em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: .6;
+}
+
+/* where we are now: the brightest row in the list, so it is found
+   at a glance */
+.jump-opt[aria-selected="true"] {
+  color: #eafaff;
+  background: rgba(28, 66, 108, .85);
+  box-shadow: inset 0 0 0 1px rgba(150, 225, 255, .6);
+}
+.jump-opt[aria-selected="true"] .jump-n { opacity: 1; }
+
+/* a section the mission has not reached yet */
+.jump-opt.ahead { opacity: .72; }
+
+/* ---- the four tools ---- */
+.tool-btn {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .34s ease,
+              transform .34s ease,
+              color .16s ease,
+              box-shadow .16s ease,
+              background .16s ease;
+}
+.tool-btn[hidden] { display: none; }
+/* one icon at a time: which one is the mute button's state, not a DOM change */
+#muteBtn .tool-icon-off { display: none; }
+#muteBtn.muted .tool-icon-on { display: none; }
+#muteBtn.muted .tool-icon-off { display: block; }
+.tool-btn.in { opacity: .75; transform: none; }
+
+.tool-btn.in:hover,
+.tool-btn.in:focus-visible {
+  opacity: 1;
+  color: #eafaff;
+  background: rgba(16, 44, 78, .78);
+  box-shadow: inset 0 0 0 1px rgba(150, 225, 255, .6);
+  outline: none;
+}
+.tool-btn.in:active { transform: translateY(1px); }
+
+/* inert while its own errand is still running */
+.tool-btn:disabled { cursor: default; opacity: .4; }
+
+.tool-icon { stroke-width: 2.6; }
+
+/* a tool that is fetching a section says so: the replay arrow turns
+   once, and the back chevrons slide the way they point */
+#resetBtn.working .tool-icon { animation: toolSpin .7s cubic-bezier(.4, 0, .3, 1); }
+@keyframes toolSpin { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+
+#backBtn.working .tool-icon { animation: toolBack .7s cubic-bezier(.4, 0, .3, 1); }
+@keyframes toolBack {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(-40%); opacity: .35; }
+  55%  { transform: translateX(40%); opacity: .35; }
+  100% { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #jumpBtn.working .jump-icon,
+  #resetBtn.working .tool-icon,
+  #backBtn.working .tool-icon { animation: none; }
+  .jump,
+  .tool-btn,
+  .jump-caret { transition: none; }
+}
+
+
+/* ============================================================
    START GATE
    ============================================================ */
 /* welcome-screen.webp is scenery and nothing else — the moon's

@@ -33,10 +33,12 @@
    The choreography, the typewriters, Swiftee and the drag-and-drop
    are the module's own code, line for line where it mattered. What
    is gone is the rest of the mission that module carried (twenty
-   pages of quadrilaterals) and the chrome it had for moving about
-   in it: the jump menu, Back and Replay. Skip stays -- every
-   concept animation has one -- and the mission's own "<" / ">"
-   nav does the rest.
+   pages of quadrilaterals). The chrome it had for moving about in
+   it -- the section menu, Back, Skip, Sound and Replay -- is the
+   mission's now (SCENE TOOLS in js/script.js), one set for every
+   screen; it reaches the lesson through skip(), run({ page }) and
+   setMuted() at the bottom, and hears where the lesson is through
+   the onPage hook init() takes.
 
    Two things the module did to the whole document are done to this
    screen alone: its pace (PACE below) stretched every Web Animation
@@ -172,15 +174,29 @@
     return ghost;
   }
 
+  /* Where a copy in the air is parked: the screen's own effects layer, so
+     it is still under .screen--learn and keeps the chip's look (its palette,
+     face and pill are all scoped to the screen; a copy on the body is a bare
+     grey <button>). That layer is fixed inside the transformed screen, so
+     its box -- not the viewport -- is the origin a copy's left/top are
+     measured from. */
+  function ghostHome() { return el.fx || doc.body; }
+  function ghostOrigin() {
+    if (!el.fx) return { x: 0, y: 0 };
+    var r = el.fx.getBoundingClientRect();
+    return { x: r.left, y: r.top };
+  }
+
   function liftGhost(chip, e, z) {
     var rect = chip.getBoundingClientRect();
+    var o = ghostOrigin();
     var ghost = flattenGhost(chip.cloneNode(true));
     ghost.classList.add('learn-ghost');
     ghost.disabled = true;
     Object.assign(ghost.style, {
       position: 'fixed',
-      left: rect.left + 'px',
-      top: rect.top + 'px',
+      left: (rect.left - o.x) + 'px',
+      top: (rect.top - o.y) + 'px',
       width: rect.width + 'px',
       height: rect.height + 'px',
       margin: 0,
@@ -190,9 +206,7 @@
       willChange: 'transform'
     });
     ghost.classList.add('mo-lifted');
-    /* on the body, outside the stage: a copy fixed inside a transformed
-       screen would be clipped by it */
-    doc.body.appendChild(ghost);
+    ghostHome().appendChild(ghost);
     return {
       el: chip, ghost: ghost, box: rect,
       offsetX: e.clientX - rect.left,
@@ -430,7 +444,7 @@
   var SFX = { correct: 'correct', wrong: 'wrong', confetti: 'cheer', click: 'click' };
   function sfx(key, volume) {
     if (fastForward) return;
-    if (!Motion.mayPlay(key)) return;
+    if (!Motion.mayPlay(key)) return;      /* off when the sound is off */
     var A = global.GeoAudio;
     if (A && SFX[key]) A.sfx(SFX[key], { volume: volume === undefined ? 1 : volume });
   }
@@ -505,12 +519,20 @@
     silenceNow();
     try {
       a.currentTime = 0;
+      /* silenced rather than skipped when the sound is off: the line
+         keeps its length, so every beat clocked off it is the same */
+      a.muted = !!(Motion.isMuted && Motion.isMuted());
       await a.play();
     } catch (e) {
       return VO_SILENT;
     }
     voNow = a;
     return { audio: a, playing: true, length: length };
+  }
+
+  /* the scene tools' Sound switch, thrown while a line is sounding */
+  function setMuted(on) {
+    Object.keys(voBank).forEach(function (k) { voBank[k].muted = !!on; });
   }
 
   function voHold(state) {
@@ -582,7 +604,21 @@
    * handed the same Next button they would have reached by playing it. */
   var sceneSeq = 0;
   var pendingNext = null;
-  function sceneStart() { sceneSeq++; }
+
+  /* the pages, in order, by the key of each one's name -- what the
+     mission's section menu lists for this screen -- and which of
+     them is in play, reported to the mission as each one opens */
+  var PAGES = ['secLessonWarmUp', 'secLessonTriangles'];
+  var pageIndex = -1;
+  var onPage = null;
+
+  function sceneStart(page) {
+    sceneSeq++;
+    if (page != null) {
+      pageIndex = page;
+      if (onPage) onPage(page);
+    }
+  }
   function sceneEnd() { sceneSeq++; }
 
   var skipWaiters = new Set();
@@ -661,14 +697,12 @@
 
   async function skipScene() {
     if (fastForward) return;
-    sfx('click', .4);
     if (pendingNext) { pendingNext.click(); return; }
 
     var from = sceneSeq;
     var token = runToken;
 
     fastForward = true;
-    el.skipBtn.disabled = true;
     stopVoice();
 
     var deadline = performance.now() + 8000;
@@ -681,18 +715,37 @@
     flushAnimations();
 
     fastForward = false;
-    el.skipBtn.disabled = false;
   }
 
-  function showTools() {
-    el.skipBtn.hidden = false;
-    void el.skipBtn.offsetHeight;
-    el.skipBtn.classList.add('in');
-    el.skipBtn.disabled = false;
-  }
-  function hideTools() {
-    el.skipBtn.classList.remove('in');
-    el.skipBtn.hidden = true;
+  /* A page ahead of the one in play, reached the way Skip reaches the
+     end of a page: everything between actually plays, as fast as a
+     skip can run it, so the board arrives in a state its own code
+     built. A skip has a watchdog of its own and hands the page back
+     if it is long, so one is not always enough to reach a hand-off --
+     which is why this keeps going rather than reading a single skip
+     as the end of the road. */
+  async function playTo(page, mine) {
+    var guard = performance.now() + 60000;
+    var quiet = 0;
+    while (pageIndex < page && mine === runToken && performance.now() < guard) {
+      var at = pageIndex;
+      var seq = sceneSeq;
+      await skipScene();
+      if (mine !== runToken) return;
+      if (pendingNext) await skipScene();        /* at the hand-off: take it */
+
+      /* taking a hand-off only resolves the wait the page was sitting
+         on; the next page opens a beat later, of its own accord */
+      var settle = performance.now() + 3000;
+      while (pageIndex === at && mine === runToken && performance.now() < settle) {
+        await new Promise(function (r) { requestAnimationFrame(r); });
+      }
+      if (pageIndex === at && sceneSeq === seq) {
+        if (++quiet >= 6) break;
+      } else {
+        quiet = 0;
+      }
+    }
   }
 
   /* ---------- the stage, and putting it back ----------
@@ -739,8 +792,8 @@
 
     swiftee.release();
 
-    /* a card mid-drag rides on a copy pinned to the body */
-    Array.from(doc.body.children).forEach(function (n) {
+    /* a card mid-drag rides on a copy in the effects layer */
+    Array.from(ghostHome().children).forEach(function (n) {
       if (n.classList && n.classList.contains('learn-ghost')) n.remove();
     });
     drag = null;
@@ -798,7 +851,6 @@
     el.board.classList.remove('cheer', 'sec2', 'head-held', 'show');
     el.fx.textContent = '';
 
-    hideTools();
     el.inputLock.classList.add('on');
     interactive = false;
     headStay = false;
@@ -898,12 +950,13 @@
       var to   = slot.getBoundingClientRect();
       if (!from.width || !to.width) return;
 
+      var o = ghostOrigin();
       var ghost = flattenGhost(chip.cloneNode(true));
       ghost.className = 'chip demo-ghost' + (chip.classList.contains('formula') ? ' formula' : '');
       ghost.disabled = true;
       Object.assign(ghost.style, {
-        left: from.left + 'px',
-        top: from.top + 'px',
+        left: (from.left - o.x) + 'px',
+        top: (from.top - o.y) + 'px',
         width: from.width + 'px',
         height: from.height + 'px',
         margin: '0'
@@ -1135,13 +1188,14 @@
         return resolve();
       }
 
+      var o = ghostOrigin();
       var ghost = flattenGhost(chip.cloneNode(true));
       ghost.className = 'chip learn-ghost' + (chip.classList.contains('formula') ? ' formula' : '');
       ghost.disabled = true;
       Object.assign(ghost.style, {
         position: 'fixed',
-        left: from.left + 'px',
-        top: from.top + 'px',
+        left: (from.left - o.x) + 'px',
+        top: (from.top - o.y) + 'px',
         width: from.width + 'px',
         height: from.height + 'px',
         margin: 0,
@@ -1149,7 +1203,7 @@
         zIndex: 960,
         transformOrigin: 'top left'
       });
-      doc.body.appendChild(ghost);
+      ghostHome().appendChild(ghost);
       chip.style.visibility = 'hidden';
 
       var dx = to.left - from.left;
@@ -1399,12 +1453,21 @@
     var FRAME_MS = 1000 / S.fps;
     var clipOf = function (name) { return S.clips[name]; };
 
+    /* A sheet is decoded under the address it is PAINTED from. The start
+       gate hands every sheet back as a blob: URL some time after the idle
+       blink has already been warmed from the network one, and a bird
+       painted from a blob nobody decoded is a bird that blinks out for a
+       frame every time its clip changes. So the cache is keyed by the
+       painted address, and a sheet whose blob arrives later is decoded
+       again under it. */
+    var srcOf = function (url) { return local[url] || url; };
     var sheets = Object.create(null);
     function warm(url) {
-      var s = sheets[url];
+      var src = srcOf(url);
+      var s = sheets[src];
       if (s) return s.p;
       var img = new Image();
-      s = sheets[url] = { img: img, settled: false, ok: false, p: null };
+      s = sheets[src] = { img: img, settled: false, ok: false, p: null };
       var mark = function () { s.settled = true; s.ok = img.naturalWidth > 0; };
       var loaded = function () {
         return new Promise(function (res) {
@@ -1412,16 +1475,22 @@
           img.onload = img.onerror = res;
         });
       };
-      img.src = local[url] || url;
+      img.src = src;
       s.p = (img.decode ? img.decode().then(mark, function () { return loaded().then(mark); })
                         : loaded().then(mark));
       return s.p;
     }
-    var settled = function (url) { var s = sheets[url]; return !!(s && s.settled); };
+    var settled = function (src) { var s = sheets[src]; return !!(s && s.settled); };
 
+    /* the address to paint a clip from, or null to hold the frame on
+       screen: the blob once it is decoded, the network copy while the
+       blob is still decoding if that one is ready, nothing otherwise */
     function pick(n, d) {
       warm(d.img);
-      return settled(d.img) ? d.img : null;
+      var src = srcOf(d.img);
+      if (settled(src)) return src;
+      if (src !== d.img && settled(d.img)) return d.img;
+      return null;
     }
 
     var program = [];
@@ -1446,7 +1515,7 @@
           n._clip = step.clip;
           if (n._url !== url) {
             n._url = url;
-            n.style.setProperty('--sw-img', 'url("' + new URL(local[url] || url, doc.baseURI).href + '")');
+            n.style.setProperty('--sw-img', 'url("' + new URL(url, doc.baseURI).href + '")');
           }
           if (!n.classList.contains('show')) n.classList.add('show');
         }
@@ -1807,7 +1876,7 @@
     lockInput(true);
     el.board.classList.remove('head-held');
     zoomOut(el.lesson);
-    sceneStart();
+    sceneStart(1);
     headStay = true;
     el.board.classList.add('head-held');
 
@@ -2050,6 +2119,7 @@
   function init(opts) {
     if (inited || !opts || !opts.screen) return;
     screen = opts.screen;
+    onPage = typeof opts.onPage === 'function' ? opts.onPage : null;
     inited = true;
 
     var q = function (id) { return screen.querySelector('#' + id); };
@@ -2059,7 +2129,7 @@
       promptGhost: q('promptGhost'), promptType: q('promptType'),
       trayArea: q('trayArea'), fx: q('learnFx'), inputLock: q('inputLock'),
       boardMascot: q('mascot'), hopper: q('hopper'), flyer: q('flyer'),
-      quip: q('quip'), nextBtn: q('nextBtn'), skipBtn: q('skipBtn'),
+      quip: q('quip'), nextBtn: q('nextBtn'),
       lesson: q('lesson'), triRow: q('triRow'),
       formulaBox: q('formulaBox'), formulaGhost: q('formulaGhost'), formulaType: q('formulaType')
     };
@@ -2143,8 +2213,6 @@
       global.addEventListener(t, function () { lastInput = performance.now(); }, { passive: true, capture: true });
     });
 
-    el.skipBtn.addEventListener('click', skipScene);
-
     /* the board's own pace, for its transitions and animations */
     doc.addEventListener('transitionrun', paceCss, true);
     doc.addEventListener('animationstart', paceCss, true);
@@ -2222,14 +2290,19 @@
   function reset() {
     if (!inited) return;
     runToken++;
+    pageIndex = -1;
     Motion.retire();
     clearStage();
   }
 
   /* Both pages, from the board arriving to the lesson's last Next.
-     Resolves true then; false if the mission took the screen away. */
-  function run() {
+     Resolves true then; false if the mission took the screen away.
+     `opts.page` opens on a later page (see playTo): the scene tools'
+     way into the middle of the lesson. */
+  function run(opts) {
     if (!inited) return Promise.resolve(true);
+    opts = opts || {};
+    var page = Math.max(0, Math.min(PAGES.length - 1, opts.page | 0));
     var mine = ++runToken;
     fastForward = false;
     lockInput(true);
@@ -2238,19 +2311,30 @@
       await wait(200);
       await showBoard();
       lockTrayHeight();
-      showTools();
       await wait(160);
-      sceneStart();
-      await sceneWarmUp();
       /* the rounds carry the page on: round 2's finish opens page 3,
          and page 3 ends on its Next. The chain comes back here only
-         through that Next, so wait for it. */
-      await new Promise(function (resolve, reject) {
+         through that Next, so wait for it -- armed before anything
+         plays, so a page reached by playTo() can never end unheard. */
+      var done = new Promise(function (resolve, reject) {
         sceneWaiters.add(function () {
           if (mine !== runToken) reject(CANCELLED); else resolve();
         });
         onLessonDone = resolve;
       });
+      sceneStart(0);
+      if (page > 0) {
+        /* not awaited: the fast-forward has to start while the warm-up
+           is still opening, not once it has played its opening out.
+           A teardown rejects it with CANCELLED, which is swallowed here
+           as it is for every chain nobody waits on. */
+        var opening = sceneWarmUp().catch(function (e) { if (e !== CANCELLED) throw e; });
+        await playTo(page, mine);
+        await opening;
+      } else {
+        await sceneWarmUp();
+      }
+      await done;
       return true;
     })().catch(function (e) {
       if (e === CANCELLED) return false;
@@ -2258,5 +2342,12 @@
     });
   }
 
-  global.GeoLearn = { init: init, assets: assets, reset: reset, run: run };
+  global.GeoLearn = {
+    init: init, assets: assets, reset: reset, run: run,
+    /* the scene tools' side */
+    skip: skipScene,
+    page: function () { return pageIndex; },
+    pages: function () { return PAGES.slice(); },
+    setMuted: setMuted
+  };
 })(window);
