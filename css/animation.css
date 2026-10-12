@@ -1,0 +1,455 @@
+/* ============================================================
+   Geo Drone — keyframes
+   ============================================================ */
+
+/* ---------------------------------------------------------- stars */
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(.6); }
+  50%      { opacity: var(--peak, .9); transform: scale(1); }
+}
+
+
+/* ---------------------------------------------------------- dashboard glass */
+@keyframes dashSheen {
+  0%   { transform: translateX(-38%); }
+  100% { transform: translateX(38%); }
+}
+
+
+/* ---------------------------------------------------------- launch button */
+@keyframes launchPop {
+  0%   { opacity: 0; transform: scale(.72); }
+  60%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes launchRing {
+  0%   { box-shadow: 0 0 0 0 rgba(120, 220, 255, .5); }
+  70%  { box-shadow: 0 0 0 22px rgba(120, 220, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(120, 220, 255, 0); }
+}
+
+/* the click: the tube surges, then settles back. A lit key can
+   take more than a painted plate could — the surge is what says the
+   circuit fired — but past ~1.5 the blue washes to white. */
+@keyframes launchFlare {
+  0%   { filter: brightness(1.42) saturate(1.15); }
+  30%  { filter: brightness(.9); }
+  100% { filter: brightness(1); }
+}
+
+/* the bloom thrown out of the plate */
+@keyframes launchBurst {
+  0%   { opacity: .8; transform: translate(-50%, -50%) scale(.5); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(2.6); }
+}
+
+/* the shockwave — one hard ring thrown outward. It is a scaling
+   border rather than a box-shadow spread, because a spread paints a
+   filled halo and reads as a slab at this opacity. */
+@keyframes launchShock {
+  0% {
+    opacity: .95;
+    border-width: clamp(2px, 0.5vh, 5px);
+    border-color: rgba(232, 250, 255, .95);
+    transform: translate(-50%, -50%) scale(.96);
+  }
+  100% {
+    opacity: 0;
+    border-width: 1px;
+    border-color: rgba(96, 200, 255, .35);
+    transform: translate(-50%, -50%) scale(2.1);
+  }
+}
+
+
+/* ---------------------------------------------------------- drone fly-out
+   Deliberately NOT here. The climb is generated step-by-step in
+   js/animation.js, because a CSS animation re-applies its timing
+   function between every pair of keyframes and that made the drone
+   brake at each stop on its way out. See flyDrone().              */
+
+
+/* ---------------------------------------------------------- veil sweep */
+@keyframes veilScan {
+  0%   { opacity: 0; transform: translateY(0); }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(300%); }
+}
+
+
+/* ---------------------------------------------------------- landing zones
+   The feed looks STRAIGHT DOWN, so a shape breaching the surface
+   comes towards the camera: it grows, and it comes into focus as it
+   leaves the murk. There is no vertical travel in any of these — an
+   island sliding up the screen would be an island moving north, not
+   an island surfacing.
+
+   The blur/brightness ramp is what sells the depth, and it has to
+   live in the keyframe rather than on a wrapper so it runs on the
+   same element and the same clock as the scale. Its 100% frame is a
+   copy of the resting filter on `.zone__img`: an animation with
+   `forwards` outranks the declaration it came from, so the last
+   frame has to BE that declaration or the shape would jump the
+   moment the rise lands. */
+@keyframes zoneRise {
+  0% {
+    opacity: 0;
+    transform: scale(.34);
+    filter: blur(9px) brightness(.34) saturate(.5);
+  }
+  18% {
+    opacity: .5;
+    transform: scale(.56);
+    filter: blur(6px) brightness(.5) saturate(.62);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(1.055);
+    filter: blur(1.4px) brightness(.94) saturate(.96);
+  }
+  80% {
+    transform: scale(.985);
+    filter: none;
+  }
+  92% {
+    transform: scale(1.008);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: drop-shadow(0 0 15px rgba(2, 26, 52, .72))
+             drop-shadow(0 0 26px rgba(120, 210, 255, .26));
+  }
+}
+
+@keyframes zoneWake {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(.3); }
+  32%  { opacity: .95; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: .5;  transform: translate(-50%, -50%) scale(1.08); }
+}
+
+@keyframes zoneSplash {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.24); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(.95); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.55); }
+}
+
+
+/* ---------------------------------------------------------- shape hunt
+   Picking a zone, and refusing one. */
+
+/* the idle invitation: shapes breathe towards the camera while they
+   are selectable — no lift, same reason as zoneRise */
+@keyframes zoneBeckon {
+  0%, 100% { transform: none; }
+  50%      { transform: scale(1.028); }
+}
+
+/* ---------------------------------------------------------- the lock
+   The bracket's ring, running out from the middle of the target and
+   dying at the corners. Two things it deliberately does not do:
+   travel past the brackets, which would make it a wave rather than
+   a lock, and hold at full strength, which would leave a circle
+   drawn around the answer.
+
+   On .fix__ring rather than on .fix, because .fix's own transform
+   is the camera's -- see the bracket block in css/style.css. */
+@keyframes fixPulse {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(.22); }
+  22%  { opacity: .85; }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1); }
+}
+
+
+/* accepted: a firm little press-in, then it settles a touch larger
+   than it was, so a locked-in zone has some weight to it. What
+   actually says "right" is the border in css/water.css; this is the
+   feel of the tap, and there is deliberately no refusal keyframe to
+   go with it — a shape task should not shake the shape. */
+@keyframes zonePicked {
+  0%   { transform: none; }
+  34%  { transform: scale(.94); }
+  70%  { transform: scale(1.065); }
+  100% { transform: scale(1.035); }
+}
+
+
+
+/* ---------------------------------------------------------- zones sinking
+   The mirror of zoneRise: a shape that does not match the ship
+   dips once — the water gathering around it — and then goes under.
+   The dip is what makes it look like it is being pulled down
+   rather than fading out on the spot. */
+@keyframes zoneSink {
+  0% {
+    opacity: 1;
+    transform: none;
+    filter: drop-shadow(0 0 15px rgba(2, 26, 52, .72))
+             drop-shadow(0 0 26px rgba(120, 210, 255, .26));
+  }
+  16% {
+    opacity: 1;
+    transform: scale(1.03);
+    filter: none;
+  }
+  46% {
+    opacity: .95;
+    transform: scale(.85);
+    filter: blur(2.6px) brightness(.74) saturate(.8);
+  }
+  78% {
+    opacity: .5;
+    transform: scale(.64);
+    filter: blur(6px) brightness(.5) saturate(.62);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(.46);
+    filter: blur(10px) brightness(.34) saturate(.5);
+  }
+}
+
+@keyframes wakeClose {
+  0%   { opacity: .5;  transform: translate(-50%, -50%) scale(1.08); }
+  40%  { opacity: .95; transform: translate(-50%, -50%) scale(1.16); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(.5); }
+}
+
+/* foam thrown up as the surface closes over the shape */
+@keyframes splashClose {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
+  26%  { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.62); }
+}
+
+
+/* ---------------------------------------------------------- narration bar */
+@keyframes caretBlink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+
+/* ---------------------------------------------------------- the landing
+   The craft's own motion, all of it pivoting on the middle of its
+   base (see .ship__craft's transform-origin) so every one of these
+   reads as a thing standing on the ground rather than a sprite
+   being rotated about its middle. */
+
+/* waiting to be told where to go */
+@keyframes shipBob {
+  0%, 100% { transform: translateY(0)     rotate(0); }
+  50%      { transform: translateY(-3.2%) rotate(.8deg); }
+}
+
+/* The three verdicts that used to be here — shipTremble, shipWobble
+   and shipSettle — are in css/failure.css now, as the phase classes
+   the landing chain adds one at a time. What stays is shipBob: it
+   is the craft WAITING, not the craft answering. */
+
+
+/* The pads breaching, gentler than the survey screen's — these are
+   being offered to the player, not discovered. Same overhead camera,
+   so the same rule holds: they grow, they do not rise. The last
+   frame restates `.pad__img`'s resting shadow, for the reason set
+   out over zoneRise. */
+@keyframes padRise {
+  0%   { opacity: 0; transform: scale(.72); filter: blur(6px) brightness(.5); }
+  60%  { opacity: 1; transform: scale(1.04); filter: none; }
+  82%  { transform: scale(.994); }
+  100% { opacity: 1; transform: none; filter: drop-shadow(0 0 20px rgba(2, 26, 52, .6)); }
+}
+
+/* The verdict traced on the landing surface. It snaps on, gives one
+   beat, and LANDS on the visible state: the green border is the
+   answer to the task, so it holds on the island afterwards instead
+   of fading out. (The two failing verdicts flash and go — see
+   fitFlash below.) */
+@keyframes fitPulse {
+  0%   { opacity: 0; transform: scale(1.14); }
+  26%  { opacity: 1; transform: scale(.995); }
+  48%  { opacity: .5; transform: scale(1.035); }
+  72%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes fitFlash {
+  0%, 100% { opacity: 0; }
+  40%      { opacity: 1; }
+}
+
+/* The splash and the ground burst that used to be here — splashFoam,
+   splashOut, crashFlash, crashDust and crashOut — went with the
+   .splash / .crash elements they drove. Their replacements are in
+   css/failure.css, block 12. */
+
+
+/* ---------------------------------------------------------- reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .dash__sheen,
+  .starfield i,
+  .gate__sheen,
+  .launch__ring,
+  .launch__flash,
+  .launch__plate,
+  /* The gate's craft: the flicker, the drift, the ring under the cap
+     and the sparks are decoration and stop. The plumes themselves
+     stay lit — a craft holding a retro burn is what the screen is a
+     picture OF, so switching them off would change what it says,
+     not just how much it moves. */
+  .gate__ship-inner,
+  .gate__ship-inner::after,
+  .gate__cone,
+  .gate__thrust::before,
+  .gate__btn::after,
+  .gate__spark b { animation: none !important; }
+
+  /* the gate button must still arrive, just without the rise */
+  .gate__btn.is-in { animation: none; opacity: 1; }
+
+  /* same for the NEXT button on the landing screen. The confetti is
+     not listed: M.confetti() builds no pieces at all under reduced
+     motion, so there is nothing here to switch off. */
+  .advance__btn.is-in { animation: none; opacity: 1; }
+
+  /* The camera does not fly at all under reduced motion: the survey
+     feed opens at ground scale with the islands already the size
+     they are played at, and the descent, the loiter, the haze and
+     the altimeter are all skipped. That is decided in js/script.js
+     (`airborne`) rather than here, because there is no CSS state to
+     switch off -- the shot only exists while camWide has parked it.
+     What is left here is the marker's own idle. */
+  .fix.is-on .fix__ring { animation: none; }
+
+  /* the invitation and the idle drifts are decoration; the pick,
+     refuse and sink animations carry meaning, so they stay. What a
+     choosable island is offered WITH under reduced motion is set in
+     the reduced-motion block of css/water.css, on its shore. */
+  .pads.is-picking .pad.is-up:not(.is-picked) .pad__img,
+  .ship.is-in .ship__craft,
+  .topbar__text.is-typing .tw__caret { animation: none !important; }
+
+  .screen { transition-duration: .3s, .3s, .3s, 0s; }
+}
+
+/* ---------------------------------------------------------- start gate */
+
+/* the highlight sweeping the loading plate */
+@keyframes gateSheen {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* the button and its hint arriving once the mission is ready */
+@keyframes gateRise {
+  0%   { opacity: 0; transform: translateY(14px) scale(.92); }
+  55%  { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+/* Every cone of every plume on the gate's craft. Stretched from the
+   mouth (the cones set transform-origin there), so the flame grows
+   and shortens along its own axis and stays attached to the metal.
+   Written to run `alternate`, and the three shells are given
+   durations that do not divide into one another — that is what
+   keeps the plume from ever repeating a shape. */
+@keyframes gateFlame {
+  from { transform: translate(-50%, 0) scale(.9, .86);  opacity: .8; }
+  to   { transform: translate(-50%, 0) scale(1.06, 1.1); opacity: 1; }
+}
+
+/* the main bell burning hot, painted over the hull. Opacity only —
+   the glow carries a centring translate of its own. */
+@keyframes gateBellHeat {
+  from { opacity: .55; }
+  to   { opacity: 1; }
+}
+
+/* the light each burn throws back into the sky around its nozzle */
+@keyframes gateThrustGlow {
+  from { opacity: .62; transform: translate(-50%, -30%) scale(.9); }
+  to   { opacity: 1;   transform: translate(-50%, -30%) scale(1.08); }
+}
+
+/* The craft riding its own thrust: a slow rise and fall with a
+   little roll in it. Small numbers on purpose — the engines are
+   doing the moving on this screen, and a craft that wanders reads
+   as a balloon. */
+@keyframes gateShipFloat {
+  from { transform: translateY(-1.8%) rotate(-1.2deg); }
+  to   { transform: translateY(2.2%)  rotate(1.4deg); }
+}
+
+/* the ring going out from the play cap. It starts ON the bezel and
+   fades as it spreads, so the cap looks like it is sending the ring
+   out rather than wearing one. */
+@keyframes gatePlayPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 128, 88, .55); }
+  70%  { box-shadow: 0 0 0 .17em rgba(255, 128, 88, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 128, 88, 0); }
+}
+
+/* the sparks flanking the cap. Opacity only: their transform is
+   carrying the fan the three strokes are arranged in, and a
+   keyframe on it would throw each stroke out of its burst. */
+@keyframes gateSparkle {
+  from { opacity: .35; }
+  to   { opacity: 1; }
+}
+
+/* ---------------------------------------------------------- celebration */
+
+/* One piece of paper falling the height of the frame. The sway
+   alternates side to side over four stops so it tumbles rather than
+   drops, and the spin is a signed angle handed in per piece, so
+   half the shower turns the other way. Every value the shower needs
+   to vary comes in as a custom property (see M.confetti), which is
+   what lets a hundred-odd pieces share this one keyframe. */
+@keyframes confettiFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -14vh, 0) rotate(0deg);
+  }
+  5% { opacity: 1; }
+  25% {
+    transform: translate3d(var(--sway), 15vh, 0)
+               rotate(calc(var(--spin) * .25));
+  }
+  50% {
+    transform: translate3d(calc(var(--sway) * -1), 44vh, 0)
+               rotate(calc(var(--spin) * .5));
+  }
+  75% {
+    transform: translate3d(var(--sway), 74vh, 0)
+               rotate(calc(var(--spin) * .75));
+  }
+  88% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--sway) * -.4), 112vh, 0)
+               rotate(var(--spin));
+  }
+}
+
+/* the NEXT button arriving after a successful landing */
+@keyframes advanceRise {
+  0%   { opacity: 0; transform: translateY(12px) scale(.9); }
+  55%  { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+/* and then quietly asking to be pressed */
+@keyframes advanceBeckon {
+  0%, 100% { box-shadow:
+               0 2px 0 #1279b3, 0 4px 0 #0d5f8f,
+               0 10px 20px rgba(0, 0, 0, .5),
+               0 0 34px rgba(70, 200, 255, .45),
+               inset 0 2px 3px rgba(255, 255, 255, .7); }
+  50%      { box-shadow:
+               0 2px 0 #1279b3, 0 4px 0 #0d5f8f,
+               0 10px 20px rgba(0, 0, 0, .5),
+               0 0 52px rgba(120, 225, 255, .9),
+               inset 0 2px 3px rgba(255, 255, 255, .7); }
+}
