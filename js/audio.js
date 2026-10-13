@@ -53,8 +53,8 @@
   }
 
   var SFX = {
-    launch:  'drone-launch.ogg',
-    rock:    'rock in water.ogg',
+    launch:  'drone-launch.webm',
+    rock:    'rock in water.webm',
 
     /* The two failed landings, one clip each. Both run about two
        seconds, which is what decides where they are fired from:
@@ -71,16 +71,16 @@
 
        Both are primed rather than built at the moment they are
        needed — see prime() below. */
-    crash:   'crash-sound.ogg',
-    sink:    'sinking-sound.ogg',
-    glitch:  'screen-glitch.ogg',
-    correct: 'correct-answer.ogg',
-    wrong:   'incorrect-answer.ogg',
-    click:   'button-click.ogg',
-    cheer:   'confetti-sound.ogg'
+    crash:   'crash-sound.webm',
+    sink:    'sinking-sound.webm',
+    glitch:  'screen-glitch.webm',
+    correct: 'correct-answer.webm',
+    wrong:   'incorrect-answer.webm',
+    click:   'button-click.webm',
+    cheer:   'confetti-sound.webm'
   };
 
-  var AMBIENCE = 'theme-music.ogg';
+  var AMBIENCE = 'theme-music.webm';
 
   /* ---------------------------------------------------------- state */
   var ctx = null;

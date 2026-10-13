@@ -210,11 +210,27 @@
 
   /* ---------------------------------------------------------- caption + voice */
   function speak(target, key, keep) {
-    if (target) {
-      target.textContent = T(key);
+    var said;
+    if (!target) {
+      said = A.say(key);
+    } else if (fastForward || M.reduced()) {
+      TW.set(target, T(key));
       target.classList.add('is-shown');
+      said = A.say(key);
+    } else {
+      /* the words arrive as the lesson's do (js/typewriter.js),
+         clocked off the clip when there is one */
+      TW.clear(target);
+      target.classList.add('is-shown');
+      if (A.hasVoice(key)) {
+        said = A.say(key, {
+          onPlay: function (audio) { TW.type(target, T(key), { audio: audio }); }
+        });
+      } else {
+        said = TW.type(target, T(key)).then(function () { return A.say(key); });
+      }
     }
-    return A.say(key).then(function () {
+    return said.then(function () {
       return M.wait(240);
     }).then(function () {
       /* `keep` lets a step that has already moved on (the player
@@ -278,7 +294,7 @@
     launched = false;
 
     el.cockpitCaption.classList.remove('is-shown');
-    el.cockpitCaption.textContent = '';
+    TW.clear(el.cockpitCaption);
 
     el.launchSlot.classList.remove('is-armed', 'is-spent');
     el.launchBtn.classList.remove('is-shown', 'is-pressed');
@@ -314,8 +330,9 @@
       function () { return speak(el.cockpitCaption, 'clickLaunch', notLaunched); },
       function () {
         if (launched) return;
-        el.cockpitCaption.textContent = T('pressWhenReady');
         el.cockpitCaption.classList.add('is-shown');
+        if (M.reduced()) TW.set(el.cockpitCaption, T('pressWhenReady'));
+        else TW.type(el.cockpitCaption, T('pressWhenReady'));
       }
     ]);
   }
@@ -330,8 +347,9 @@
     el.launchSlot.classList.remove('is-armed');
     el.launchBtn.classList.add('is-pressed');
     A.stopVoice();
-    el.cockpitCaption.textContent = T('launching');
     el.cockpitCaption.classList.add('is-shown');
+    if (M.reduced()) TW.set(el.cockpitCaption, T('launching'));
+    else TW.type(el.cockpitCaption, T('launching'));
 
     A.duckAmbience(0.11, 700);
     A.sfx('launch', { volume: 0.9 });

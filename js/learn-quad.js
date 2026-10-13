@@ -1586,6 +1586,10 @@
       'P18-01-choose-the-correct-area',
     'this rhombus has an area of 240 sq. cm. find the other diagonal.':
       'P19-01-this-rhombus-has-an-area-of-240-sq',
+    /* the fact alone, as page 19 types it over the shape (recorded
+       2026-10-13) */
+    'this rhombus has an area of 240 sq. cm.':
+      'P19-06-this-rhombus-has-an-area-of-240-sq-cm',
     'that\'s correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm.':
       'P19-05-thats-correct-half-x-30-x-d2-240',
     'what is the area of the rhombus?':

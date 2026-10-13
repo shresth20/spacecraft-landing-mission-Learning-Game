@@ -1393,8 +1393,19 @@
       /* 'wait': the photograph is still decoding -- the DOM layers stay
          up, untouched, until the first frame the canvas can draw whole */
     });
-    if (any || scScreens.some(function (e) { return !e.dead; })) global.requestAnimationFrame(scFrame);
+    /* Only while some sea is on screen. A loop left running behind a
+       screen with no water asks the browser for a main-thread frame on
+       every refresh for nothing; scWake() restarts it the moment a sea
+       screen comes in. */
+    if (any) global.requestAnimationFrame(scFrame);
     else scRunning = false;
+  }
+
+  function scWake() {
+    if (scRunning) return;
+    if (!scScreens.some(function (e) { return !e.dead && scVisible(e.screen); })) return;
+    scRunning = true;
+    global.requestAnimationFrame(scFrame);
   }
 
   function scSupported() {
@@ -1423,8 +1434,11 @@
       cv.width = 0; cv.height = 0;
       bg.parentNode.insertBefore(cv, bg);
       scScreens.push({ screen: screen, canvas: cv, ctx: cv.getContext('2d'), els: els, on: false, dead: false });
+      /* the screen's own classes say when it is coming into view */
+      new MutationObserver(scWake).observe(screen, { attributes: true, attributeFilter: ['class'] });
     });
-    if (scScreens.length && !scRunning) { scRunning = true; global.requestAnimationFrame(scFrame); }
+    doc.addEventListener('visibilitychange', scWake);
+    scWake();
   }
 
   global.GeoWater = {

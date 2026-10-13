@@ -225,12 +225,6 @@
 }
 
 
-/* ---------------------------------------------------------- narration bar */
-@keyframes caretBlink {
-  0%, 49%   { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-
 
 /* ---------------------------------------------------------- the landing
    The craft's own motion, all of it pivoting on the middle of its
@@ -328,8 +322,10 @@
      choosable island is offered WITH under reduced motion is set in
      the reduced-motion block of css/water.css, on its shore. */
   .pads.is-picking .pad.is-up:not(.is-picked) .pad__img,
-  .ship.is-in .ship__craft,
-  .topbar__text.is-typing .tw__caret { animation: none !important; }
+  .ship.is-in .ship__craft { animation: none !important; }
+
+  /* as on the lesson screens: the words still arrive, but at once */
+  .tw__line .wd.in { animation-duration: .08s; }
 
   .screen { transition-duration: .3s, .3s, .3s, 0s; }
 }

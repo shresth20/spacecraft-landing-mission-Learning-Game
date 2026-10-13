@@ -1339,25 +1339,35 @@ button { font: inherit; color: inherit; }
 
 
 /* ---------------------------------------------------------- typewriter
-   `.tw__off` holds the part of the line that has not been typed
-   yet. It stays in the layout — hidden, not removed — so the bar
-   is sized for the finished sentence from the very first frame and
-   the words do not creep outwards as they arrive. */
-.tw__off { visibility: hidden; }
-
-.tw__caret {
+   The lesson screens' word-by-word reveal (css/learn.css), shared
+   by every line the game puts up -- see js/typewriter.js.
+   `.tw__ghost` holds the longest piece of the line, hidden, so the
+   box is sized for it from the first frame; the live piece sits on
+   top of it, so words land in place instead of shoving the centred
+   line sideways as they arrive. */
+.tw__box {
+  position: relative;
   display: inline-block;
-  width: .09em;
-  height: .95em;
-  margin: 0 .02em -.11em;
-  background: var(--bar-ink, #eef9ff);
-  box-shadow: 0 0 8px rgba(2, 28, 48, .45);
-  opacity: 0;
+  max-width: 100%;
+  vertical-align: top;
+}
+.tw__ghost { visibility: hidden; }
+/* centred, where the lesson's heading sets it left against Swiftee:
+   the game's caption and bar are centred, and a short last piece
+   ("Commander.") would otherwise sit off to one side */
+.tw__line {
+  position: absolute;
+  inset: 0;
+  text-align: center;
 }
 
-.topbar__text.is-typing .tw__caret {
-  opacity: 1;
-  animation: caretBlink .62s steps(1, end) infinite;
+/* ---------- the words ease in ----------
+   each fades up and sharpens where it already sits */
+.tw__line .wd { opacity: 0; }
+.tw__line .wd.in { animation: tw-wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes tw-wd-in {
+  from { opacity: 0; filter: blur(4px); }
+  to   { opacity: 1; filter: blur(0); }
 }
 
 
