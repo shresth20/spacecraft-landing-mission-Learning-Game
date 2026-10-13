@@ -239,6 +239,18 @@
     if (ctx && ctx.state === 'suspended') ctx.resume();
   }
 
+  /* Built ahead of the first tap. Constructing the AudioContext opens
+     the audio device synchronously -- measured at ~117 ms in Edge on
+     macOS -- and the first caller used to be the tap sound in
+     onTap(), so that cost landed inside the Start press: a frozen
+     frame and ~180 ms before the button answered. Made while the start
+     gate is still loading it comes up suspended (no gesture yet, as
+     the autoplay policy requires), and the tap only has to resume()
+     it, which is asynchronous. Nothing can sound before that tap. */
+  function prewarm() { ensureContext(); }
+  if (global.requestIdleCallback) global.requestIdleCallback(prewarm, { timeout: 2000 });
+  else global.setTimeout(prewarm, 600);
+
   /* ---------------------------------------------------------- narration */
   /* Is there a clip for this line? narrate() asks before it decides
      whether to clock the typing off a voice or off the reading
