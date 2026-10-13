@@ -214,6 +214,12 @@
   /* half-length of the tick that caps each end of a dimension line */
   var CAP = 3.6;
 
+  /* every island and craft has an AVIF twin of its WebP; js/preload.js
+     says which of the two this browser decodes */
+  function art(name) {
+    return global.GeoLoad && global.GeoLoad.artName ? global.GeoLoad.artName(name) : name;
+  }
+
   function path(cls, d) { return '<path class="' + cls + '" d="' + d + '" />'; }
 
   function num(x, y, txt) {
@@ -776,7 +782,7 @@
                 ' style="--k:' + round2(k) + ';--icx:' + land.cx + ';--icy:' + land.cy + '">' +
       '<span class="islet__wake"></span>' +
       '<span class="islet__splash"></span>' +
-      '<img class="islet__img" src="assets/images/' + encodeURI(land.img) + '" alt="" />' +
+      '<img class="islet__img" src="assets/images/' + encodeURI(art(land.img)) + '" alt="" />' +
     '</div>';
   }
 
@@ -876,7 +882,7 @@
                 ' data-adj="' + land.adj + '"' +
                 (o.area == null ? '' : ' data-area="' + o.area + '"') +
                 ' style="' + vars + '">' +
-      '<img class="pad__img" src="assets/images/' + encodeURI(land.img) + '" alt="" />' +
+      '<img class="pad__img" src="assets/images/' + encodeURI(art(land.img)) + '" alt="" />' +
       '<svg class="pad__fit" viewBox="0 0 100 100" aria-hidden="true">' +
         '<path d="' + land.outline + '" />' +
       '</svg>' +
@@ -899,7 +905,7 @@
     return '<div class="ship">' +
       '<span class="ship__dust" aria-hidden="true"></span>' +
       '<div class="ship__craft">' +
-        '<img class="ship__img" src="assets/images/' + encodeURI(craft.img) +
+        '<img class="ship__img" src="assets/images/' + encodeURI(art(craft.img)) +
              '" alt="' + esc(T(craft.alt)) + '" />' +
         '<span class="engine-flame" aria-hidden="true"></span>' +
         '<svg class="ship__dims" viewBox="-28 -6 132 132" aria-hidden="true">' +
@@ -1240,8 +1246,8 @@
 
   global.GeoPages = {
     build: build, buildSurvey: buildSurvey,
-    scatter: scatter, deal: deal, dealRow: dealRow,
+    scatter: scatter, dealRow: dealRow,
     arrangeSite: arrangeSite, drawPair: drawPair, strewIslets: strewIslets,
-    survey: SURVEY, landing: LANDING, shapes: SHAPES, land: LAND, craft: CRAFT
+    land: LAND
   };
 })(window);

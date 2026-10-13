@@ -191,6 +191,13 @@
   background-image: url("../assets/images/learn-bg.webp");
   background-size: cover;
 }
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  .screen--learn .learn-bg {
+    background-image:
+      image-set(url("../assets/images/learn-bg.avif") type("image/avif"),
+                url("../assets/images/learn-bg.webp") type("image/webp"));
+  }
+}
 
 /* ---------- the half ----------
  * "½" is written as a stacked fraction wherever it appears. */
@@ -248,6 +255,16 @@
      shift the spot beside the heading that Swiftee jumps to. */
   opacity: 0;
   transition: opacity .5s ease;
+}
+/* the artwork as AVIF, the same way as the landscape above: background-image
+   only, so the size, position and repeat of the shorthand still apply */
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  .screen--learn .board {
+    background-image:
+      image-set(url("../assets/images/learn-board.avif") type("image/avif"),
+                url("../assets/images/learn-board.webp") type("image/webp")),
+      var(--board-wash);
+  }
 }
 .screen--learn .board.show { opacity: 1; }
 

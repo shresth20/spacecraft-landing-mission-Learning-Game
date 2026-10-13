@@ -1462,7 +1462,6 @@
   function startRoundChoosing(site, id) {
     site.phase = 'area';
     armRound(site);
-    standingRoundHint(site);
 
     return new Promise(function (resolve) {
       site.release = resolve;
@@ -1484,17 +1483,6 @@
       var hit = pad.querySelector('.pad__hit');
       if (hit) hit.tabIndex = -1;
     });
-  }
-
-  /* The HUD lines are deliberately NOT a repeat of the spoken line
-     above: they carry the arithmetic the player is being asked to
-     do, and stay put while the narration comes and goes. */
-  function standingRoundHint(site) {
-    var e = site.el;
-    e.caption.textContent = T(site.copy.formula);
-    e.caption.classList.add('is-shown');
-    e.tally.textContent = T(site.copy.tally);
-    e.tally.classList.add('is-shown');
   }
 
   function onRoundAreaPick(site, pad) {
@@ -1622,7 +1610,7 @@
         if (!live(id)) return;
         site.landing = false;
         if (!site.solved) armRound(site);
-        standingRoundHint(site);
+        if (e.caption) e.caption.classList.remove('is-shown');
         return narrate(e.topbarText, 'chooseExact');
       });
   }
@@ -2210,27 +2198,51 @@
      first, so the swap on an image that is already showing (the
      gate's own craft) is between two decoded copies of the same
      pixels and never blinks. If the blob is ever refused the element
-     goes back to its file URL, once. */
+     goes back to its file URL, once. An <img> in a <picture> loses
+     its <source>s on the way: they would outrank the new src, and
+     the blob is already the file they chose. */
+  /* Both swaps return a promise the gate waits on (js/preload.js):
+     it settles once the element itself is showing the blob and the
+     browser has decoded it for that element, so the start button is
+     never offered over a picture that is still coming in. */
+  function decodeOf(img) {
+    return img.decode ? img.decode().catch(function () {}) : Promise.resolve();
+  }
+
   function swapImg(img, original, blobUrl) {
     var probe = new Image();
     probe.src = blobUrl;
-    var decoded = probe.decode ? probe.decode().catch(function () {}) : Promise.resolve();
-    decoded.then(function () {
+    return decodeOf(probe).then(function () {
       img.addEventListener('error', function onErr() {
         img.removeEventListener('error', onErr);
         if (img.src === blobUrl) img.src = original;
       });
+      var pic = img.parentNode;
+      if (pic && pic.nodeName === 'PICTURE') {
+        Array.prototype.slice.call(pic.querySelectorAll('source')).forEach(function (s) {
+          pic.removeChild(s);
+        });
+      }
       img.src = blobUrl;
+      return decodeOf(img);
     });
   }
 
   function swapBg(node, blobUrl) {
     var probe = new Image();
     probe.src = blobUrl;
-    var decoded = probe.decode ? probe.decode().catch(function () {}) : Promise.resolve();
-    decoded.then(function () {
+    return decodeOf(probe).then(function () {
       node.style.backgroundImage = 'url("' + blobUrl + '")';
+      /* kept alive with the node, so the decode is not thrown away
+         before the screen it is on first paints */
+      node._geoBg = probe;
     });
+  }
+
+  function bgUrl(value) {
+    if (global.GeoLoad && global.GeoLoad.bgUrl) return global.GeoLoad.bgUrl(value);
+    var m = /url\((["']?)(.*?)\1\)/.exec(value);
+    return m ? m[2] : '';
   }
 
   function imageJobs() {
@@ -2248,16 +2260,16 @@
 
     Array.prototype.forEach.call(document.images, function (img) {
       var src = img.currentSrc || img.src;
-      add(src, function (blobUrl) { swapImg(img, src, blobUrl); });
+      add(src, function (blobUrl) { return swapImg(img, src, blobUrl); });
     });
 
     Array.prototype.forEach.call(
       document.querySelectorAll('.layer, .gate'),
       function (node) {
-        var bg = getComputedStyle(node).backgroundImage || '';
-        var m = /url\((["']?)(.*?)\1\)/.exec(bg);
-        if (!m || !m[2]) return;
-        add(m[2], function (blobUrl) { swapBg(node, blobUrl); });
+        /* the url() it paints: an image-set() offers AVIF and WebP */
+        var u = bgUrl(getComputedStyle(node).backgroundImage || '');
+        if (!u) return;
+        add(u, function (blobUrl) { return swapBg(node, blobUrl); });
       }
     );
 
@@ -2266,7 +2278,9 @@
       return {
         url: u,
         size: sizeOf(u),
-        apply: function (blobUrl) { fns.forEach(function (f) { f(blobUrl); }); }
+        apply: function (blobUrl) {
+          return Promise.all(fns.map(function (f) { return f(blobUrl); }));
+        }
       };
     });
   }
@@ -2318,6 +2332,36 @@
   }
 
   var GATE_MIN_MS = 1150;       // a warm cache must still read as a load
+  var SETTLE_MS = 8000;         // the most the final check may add
+
+  /* The last check before Start is offered, after every file is in
+     and decoded: anything the fetcher could not hand over (a file
+     that failed keeps its own URL and loads the ordinary way) is
+     waited for here, along with the faces the captions are set in,
+     and then two painted frames -- so the first screen, its artwork
+     and the gate's own animation are already on the GPU and running
+     when the button arrives, not starting up under the first tap.
+     Capped, like everything on the gate: nothing here can hold the
+     mission. */
+  function nextFrame() {
+    return new Promise(function (r) { requestAnimationFrame(function () { r(); }); });
+  }
+
+  function settleAll() {
+    var waits = Array.prototype.map.call(document.images, function (img) {
+      if (img.complete && img.naturalWidth) return decodeOf(img);
+      /* complete with no pixels: it already failed, and its error
+         event has been and gone -- nothing more to wait for */
+      if (img.complete) return Promise.resolve();
+      return new Promise(function (r) {
+        img.addEventListener('load', function () { decodeOf(img).then(r); }, { once: true });
+        img.addEventListener('error', r, { once: true });
+      });
+    });
+    if (document.fonts && document.fonts.ready) waits.push(document.fonts.ready);
+    var all = Promise.all(waits).then(nextFrame).then(nextFrame);
+    return Promise.race([all, M.wait(SETTLE_MS)]);
+  }
 
   /* has every asset settled? begin() will not run until it has, so
      a keyboard or scripted start waits on the same bar the click
@@ -2368,6 +2412,8 @@
     draw(0);
 
     return LOAD.run(jobs, onProgress).then(function (tally) {
+      return settleAll().then(function () { return tally; });
+    }).then(function (tally) {
       target = 1;
       if (tally && tally.failed && global.console) {
         console.warn('GeoDrone: ' + tally.failed + ' asset(s) could not be ' +

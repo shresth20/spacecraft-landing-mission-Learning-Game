@@ -688,7 +688,6 @@
     prime: prime,
     stopVoice: stopVoice,
     stopAll: stopAll,
-    isSpeaking: isSpeaking,
     startAmbience: startAmbience,
     duckAmbience: duckAmbience,
     setMuted: setMuted,

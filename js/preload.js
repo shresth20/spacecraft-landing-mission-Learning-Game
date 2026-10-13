@@ -22,9 +22,10 @@
        counts as done with its full weight and the element it was for
        keeps the URL it already had
 
-   Formats: the artwork is WebP and the audio is Ogg Opus — both
-   play in Chrome, Edge, Firefox and recent Safari (WebP 14+, Ogg
-   Opus 17+ on macOS/iOS).
+   Formats: the artwork is AVIF with a WebP fallback (see AVIF at
+   the bottom), the sprite sheets are lossless WebP and the audio is
+   Ogg Opus — all play in Chrome, Edge, Firefox and recent Safari
+   (WebP 14+, AVIF 16+, Ogg Opus 17+ on macOS/iOS).
    ============================================================ */
 
 (function (global) {
@@ -33,6 +34,20 @@
   var CONCURRENCY = 5;
   var STALL_MS = 20000;       /* no bytes for this long → give up on the file */
   var HARD_MS  = 5 * 60000;   /* and a transfer still going after this */
+  /* how long the gate waits on one file's hand-off (its decode) before
+     counting it in anyway: a picture that will not decode must not
+     hold the mission */
+  var APPLY_MS = 10000;
+
+  /* a promise, or anything, settled within `ms` -- never rejects */
+  function capped(v, ms) {
+    if (!v || typeof v.then !== 'function') return Promise.resolve();
+    return new Promise(function (resolve) {
+      var t = setTimeout(resolve, ms);
+      v.then(function () { clearTimeout(t); resolve(); },
+             function () { clearTimeout(t); resolve(); });
+    });
+  }
 
   /* a nominal weight for a file the manifest does not know, until
      its Content-Length says otherwise */
@@ -71,18 +86,22 @@
                 url    what to fetch, absolute or relative
                 size   its weight in bytes (0 = unknown)
                 apply  fn(blobUrl), called once the file is fully in;
-                       skipped on any failure. Optional.
+                       skipped on any failure. Optional. If it returns
+                       a promise (a decode), run() waits for that too,
+                       up to APPLY_MS, so "done" means ready to paint
+                       and not just downloaded.
      `onProgress(p)`  0..1, called whenever anything moves. Never
                       goes down: a re-weighting that would move it
                       back is held until the download catches up.
 
-     Resolves — never rejects — once every item has settled, with a
-     small tally for the console. */
+     Resolves — never rejects — once every item has settled and every
+     hand-off has finished, with a small tally for the console. */
   function run(items, onProgress) {
     items = (items || []).slice();
     var total = 0;
     var shown = 0;
     var tally = { ok: 0, failed: 0, bytes: 0 };
+    var handoffs = [];
 
     items.forEach(function (it) {
       it.size = it.size > 0 ? it.size : GUESS;
@@ -142,7 +161,7 @@
             tally.ok++;
             tally.bytes += blob.size;
             if (it.apply) {
-              try { it.apply(URL.createObjectURL(blob)); }
+              try { handoffs.push(capped(it.apply(URL.createObjectURL(blob)), APPLY_MS)); }
               catch (e) { /* the element keeps its own src */ }
             }
           } else {
@@ -221,9 +240,68 @@
     return Promise.all(lanes).then(function () {
       items.forEach(function (it) { it.done = true; });
       report();
-      return tally;
-    });
+      /* every file is in; now every one of them decoded */
+      return Promise.all(handoffs);
+    }).then(function () { return tally; });
   }
 
-  global.GeoLoad = { run: run };
+  /* ---------------------------------------------------------- AVIF
+     The artwork ships twice: AVIF, and the WebP it was made from as
+     the fallback (Swiftee's sprite sheets are lossless WebP only — AVIF
+     cannot beat them). The stylesheet chooses for itself, through
+     image-set() inside @supports, and so does every <picture> in
+     index.html. The islands and crafts js/pages.js builds are told by
+     this probe instead: a real decode of a 1x1 AVIF with alpha, since
+     a browser can understand image-set()'s type() and still be unable
+     to decode AVIF. index.html waits on it before it loads
+     js/script.js, so every built <img> asks for the right file the
+     first time. Never rejects; no answer in 1.5s counts as no. */
+  var AVIF_PROBE = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAAGGbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAAAAAAAOcGl0bQAAAAAAAQAAACxpbG9jAAAAAEQAAAIAAQAAAAEAAAG/AAAAGAACAAAAAQAAAa4AAAARAAAAQmlpbmYAAAAAAAIAAAAaaW5mZQIAAAAAAQAAYXYwMUNvbG9yAAAAABppbmZlAgAAAAACAABhdjAxQWxwaGEAAAAAGmlyZWYAAAAAAAAADmF1eGwAAgABAAEAAADDaXBycAAAAJ1pcGNvAAAAFGlzcGUAAAAAAAAAAQAAAAEAAAAQcGl4aQAAAAADCAgIAAAADGF2MUOBAAwAAAAAE2NvbHJuY2x4AAEADQAGgAAAAA5waXhpAAAAAAEIAAAADGF2MUOBABwAAAAAOGF1eEMAAAAAdXJuOm1wZWc6bXBlZ0I6Y2ljcDpzeXN0ZW1zOmF1eGlsaWFyeTphbHBoYQAAAAAeaXBtYQAAAAAAAAACAAEEAQKDBAACBAEFhgcAAAAxbWRhdBIACgQYAAYVMgceQP/xABCgEgAKBRgABgQgMg0eQD///8QAAK8nvmIQ';
+  var avif = false;
+
+  var art = new Promise(function (resolve) {
+    var settled = false;
+    function settle(ok) {
+      if (settled) return;
+      settled = true;
+      avif = ok;
+      resolve(ok);
+    }
+    setTimeout(function () { settle(false); }, 1500);
+    try {
+      var probe = new Image();
+      probe.onload = function () { settle(probe.width === 1); };
+      probe.onerror = function () { settle(false); };
+      probe.src = AVIF_PROBE;
+    } catch (e) { settle(false); }
+  });
+
+  /* 'Triangle.webp' → 'Triangle.avif', where the probe said AVIF
+     decodes. Only for artwork that has an AVIF twin on disk. */
+  function artName(name) {
+    return avif ? name.replace(/\.webp$/i, '.avif') : name;
+  }
+
+  /* The file a computed background-image actually paints: its one
+     url(), or for an image-set() the first option this browser can
+     decode — the AVIF only if the probe said so. Option text after
+     the url() (a resolution, a type()) runs up to the next comma. */
+  function decodes(type) {
+    if (!type) return true;
+    if (/^image\/avif$/i.test(type)) return avif;
+    return /^image\/(webp|png|jpeg|gif|svg\+xml)$/i.test(type);
+  }
+
+  function bgUrl(value) {
+    var re = /url\((["']?)(.*?)\1\)([^,]*)/g;
+    var m, t, first = '';
+    while ((m = re.exec(value || ''))) {
+      if (!first) first = m[2];
+      t = /type\(\s*["']([^"']*)/i.exec(m[3]);
+      if (decodes(t && t[1])) return m[2];
+    }
+    return first;
+  }
+
+  global.GeoLoad = { run: run, art: art, artName: artName, bgUrl: bgUrl };
 })(window);

@@ -15,7 +15,6 @@
         "startScan": "startScan.ogg",
         "foundZones": "foundZones.ogg",
         "lookShapes": "lookShapes.ogg",
-        "pickTriangles": "pickTriangles.ogg",
         "shapeMatch": "shapeMatch.ogg",
         "tryAgain": "tryAgain.ogg",
         "spaceNeeded": "spaceNeeded.ogg",
@@ -80,7 +79,6 @@
     "recalledAreas": "We have recalled the area of these shapes.",
     "safeLand": "Now, we can safely land the spacecraft in the landing zone.",
 
-    "pickTriangles": "The spaceship is a triangle. Select all the triangular landing zones.",
     "sayParallelogram": "The spaceship is a parallelogram. Select all the parallelogram landing zones.",
     "sayTrapezium": "The spaceship is a trapezium. Select all the trapezium landing zones.",
     "sayRhombus": "The spaceship is a rhombus. Select all the rhombus landing zones.",

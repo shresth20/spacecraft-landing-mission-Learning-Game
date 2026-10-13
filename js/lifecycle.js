@@ -140,7 +140,6 @@
     init: init,
     wait: wait,
     on: on,
-    suspend: suspend,
     resume: resume,
     isPaused: isPaused
   };

@@ -810,8 +810,32 @@
     wave.classList.remove('is-on');
     void wave.offsetWidth;
     wave.classList.add('is-on');
+    retire(wave);
 
     if (!reduced()) spread(screen, point, wave.offsetWidth, opts.from);
+  }
+
+  /* A front that has finished is let go of. Its animations fill
+     forwards at opacity 0, and with `is-on` left on, every idle wave
+     kept its refracting .wave__warp -- a backdrop-filter behind a
+     mask, promoted -- composited for as long as the screen was up:
+     three per screen, invisible, each holding a layer and the render
+     surface its backdrop needs. Measured in Edge at 2x, the idle
+     fronts alone were enough to tip the survey's flights over the
+     tile budget. So `is-on` comes off once every animation in the
+     front has run out, and `.wave:not(.is-on)` (css/water.css) holds
+     no layer. A front restarted mid-run cancels the old animations,
+     which rejects their `finished`, and the run counter makes sure an
+     older run can never take a newer one down. With nothing running
+     (reduced motion) the wave is left exactly as it was. */
+  function retire(wave) {
+    var run = (wave._run = (wave._run || 0) + 1);
+    if (!wave.getAnimations) return;
+    var anims = wave.getAnimations({ subtree: true });
+    if (!anims.length) return;
+    Promise.all(anims.map(function (a) { return a.finished; })).then(function () {
+      if (wave._run === run) wave.classList.remove('is-on');
+    }, function () { /* restarted or torn down: the newer run owns it */ });
   }
 
   /* The rest of the archipelago answering. `front` is how wide the
@@ -950,7 +974,6 @@
 
   global.GeoWater = {
     init: init,
-    attach: attach,
     breach: breach,
     close: close,
     approve: approve,

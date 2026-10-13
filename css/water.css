@@ -180,8 +180,14 @@
    readable repeat. Two of these drift across each other in
    opposite directions, which is what makes the pattern churn
    rather than slide. */
+/* 10%, not the 40% this used to be: the furthest either sheet
+   drifts is 5.8% of the frame, and every extra per cent is texture
+   rasterised off screen. At 40% the pair were 1.8 frames square --
+   at 2x two 4580x2240 tiles' worth each, the largest layers on the
+   screen. Tile sizes, phase and drift are rescaled with the box
+   (x 1.8/1.2), so the net is the same net in the same place. */
 .sea__caustic {
-  inset: -40%;
+  inset: -10%;
   will-change: transform;
 }
 
@@ -190,8 +196,8 @@
     radial-gradient(closest-side, rgba(var(--sea-lit), .38), rgba(var(--sea-lit), 0) 68%),
     radial-gradient(closest-side, rgba(var(--sea-lit), .26), rgba(var(--sea-lit), 0) 72%),
     radial-gradient(closest-side, rgba(var(--sea-shallow), .24), rgba(var(--sea-shallow), 0) 70%);
-  background-size: 12% 9%, 8% 12%, 19% 14%;
-  background-position: 0 0, 37% 21%, 63% 58%;
+  background-size: 18% 13.5%, 12% 18%, 28.5% 21%;
+  background-position: 35.37% 17.92%, 43.25% 47.22%, 32.23% 63.06%;
   mix-blend-mode: soft-light;
   animation: causticDriftA 34s linear infinite;
 }
@@ -200,8 +206,8 @@
   background-image:
     radial-gradient(closest-side, rgba(var(--sea-foam), .22), rgba(var(--sea-foam), 0) 66%),
     radial-gradient(closest-side, rgba(var(--sea-shallow), .18), rgba(var(--sea-shallow), 0) 74%);
-  background-size: 16% 22%, 27% 17%;
-  background-position: 12% 61%, 74% 8%;
+  background-size: 24% 33%, 40.5% 25.5%;
+  background-position: 50.16% 69.21%, 26.1% 48.27%;
   mix-blend-mode: screen;
   opacity: .5;
   animation: causticDriftB 47s linear infinite;
@@ -210,14 +216,19 @@
 /* ---------------------------------------------------------- sun glint
    The specular sheet, sweeping. Long period on purpose: this is
    the sun on the swell, and a fast one reads as a searchlight. */
+/* It sweeps sideways only (glintSweep), so the 25% of margin above
+   and below it was texture nobody could ever see: 41 MB of tiles at
+   2x. 1% vertically is rounding slack. A shorter box shortens the
+   104deg gradient line by ~3.5% at 16:9, so the stops are spread by
+   the same amount about the middle and the band keeps its width. */
 .sea__glint {
-  inset: -25%;
+  inset: -1% -25%;
   background: linear-gradient(104deg,
-    rgba(var(--sea-foam), 0)   32%,
-    rgba(var(--sea-foam), .14) 45%,
+    rgba(var(--sea-foam), 0)   31.35%,
+    rgba(var(--sea-foam), .14) 44.82%,
     rgba(var(--sea-foam), .22) 50%,
-    rgba(var(--sea-foam), .12) 55%,
-    rgba(var(--sea-foam), 0)   68%);
+    rgba(var(--sea-foam), .12) 55.18%,
+    rgba(var(--sea-foam), 0)   68.65%);
   mix-blend-mode: screen;
   opacity: .4;
   will-change: transform;
@@ -278,13 +289,13 @@
 
 @keyframes causticDriftA {
   0%   { transform: translate3d(0, 0, 0) scale(1); }
-  50%  { transform: translate3d(2.4%, -3.1%, 0) scale(1.06); }
+  50%  { transform: translate3d(3.6%, -4.65%, 0) scale(1.06); }
   100% { transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes causticDriftB {
   0%   { transform: translate3d(0, 0, 0) scale(1.04); }
-  50%  { transform: translate3d(-3.2%, 2.2%, 0) scale(1); }
+  50%  { transform: translate3d(-4.8%, 3.3%, 0) scale(1); }
   100% { transform: translate3d(0, 0, 0) scale(1.04); }
 }
 
@@ -431,8 +442,18 @@
    Nothing here needs `overflow` — .stage is `overflow: clip` at
    exactly one screen.
    ============================================================ */
+/* ...and only along the axis it travels on. A sheet moves `--p`
+   along (--dx, --dy), so it can walk --p*|dx| into shot sideways and
+   --p*|dy| vertically -- never the full --p on both. --ax/--ay are
+   those magnitudes (CSS has no abs() everywhere this runs). Measured
+   in Edge at 2x, the three trains were the single largest block of
+   tile memory on the survey (88 MB of 366); the long swell runs
+   within 14deg of horizontal and lost three quarters of its vertical
+   margin. The stops and the travel are absolute lengths, so all a
+   smaller box changes is where the pattern starts -- a phase, on a
+   train that never stops moving. */
 .sea__roll {
-  inset: calc(-1vmin - var(--p));
+  inset: calc(-1vmin - var(--p) * var(--ay)) calc(-1vmin - var(--p) * var(--ax));
   will-change: transform;
 }
 
@@ -446,6 +467,8 @@
   --p: 23vmin;
   --dx: .9703;
   --dy: .2419;
+  --ax: .9703;
+  --ay: .2419;
   background-image: repeating-linear-gradient(104deg,
     rgba(var(--sea-deep),    .17) 0,
     rgba(var(--sea-deep),    .09) calc(var(--p) * .20),
@@ -471,6 +494,8 @@
   --p: 13.5vmin;
   --dx: .9945;
   --dy: .1045;
+  --ax: .9945;
+  --ay: .1045;
   background-image: repeating-linear-gradient(96deg,
     rgba(var(--sea-deep),    .14) 0,
     rgba(var(--sea-deep),    .06) calc(var(--p) * .24),
@@ -494,6 +519,8 @@
   --p: 5.2vmin;
   --dx: -.8829;
   --dy: -.4695;
+  --ax: .8829;
+  --ay: .4695;
   background-image: repeating-linear-gradient(118deg,
     rgba(var(--sea-deep), .08) 0,
     rgba(var(--sea-lit),  .09) calc(var(--p) * .46),
@@ -900,9 +927,19 @@
   transition: opacity .9s ease;
 }
 
+/* Oversized by just what the drift needs. The wash is clipped to the
+   island, so everything past its outline is texture nobody ever sees
+   -- and at the 60% this used to be, that was four fifths of every
+   sheet: 36 of them at 2.2 islands square, rasterised at the lens's
+   full zoom and all in view at once from survey height. Measured in
+   Edge at 2x, that alone pushed the tile budget past its 512 MB and
+   left whole tiles of the sea unpainted during the flights.
+   15% covers the furthest drift below (8.5% of the island) with
+   room to spare. The tile sizes, their phase and the drift were
+   rescaled with it (x 2.2/1.3), so the light lands where it did. */
 .wash i {
   position: absolute;
-  inset: -60%;
+  inset: -15%;
   will-change: transform;
 }
 
@@ -911,8 +948,8 @@
   background-image:
     radial-gradient(closest-side, rgba(var(--sea-foam), .38), rgba(var(--sea-foam), 0) 66%),
     radial-gradient(closest-side, rgba(var(--sea-lit), .26), rgba(var(--sea-lit), 0) 70%);
-  background-size: 42% 30%, 27% 39%;
-  background-position: 0 0, 55% 40%;
+  background-size: 71.08% 50.77%, 45.69% 66%;
+  background-position: 126.06% 32.81%, 61.37% 19.64%;
   animation: washLight 15s ease-in-out infinite;
 }
 
@@ -921,19 +958,19 @@
 .wash i:last-child {
   background-image:
     radial-gradient(closest-side, rgba(var(--sea-deep), .32), rgba(var(--sea-deep), 0) 68%);
-  background-size: 55% 44%;
-  background-position: 30% 60%;
+  background-size: 93.08% 74.46%;
+  background-position: -170% 87.11%;
   animation: washShade 21s ease-in-out infinite;
 }
 
 @keyframes washLight {
-  0%, 100% { transform: translate3d(-4%, 2%, 0) scale(1); }
-  50%      { transform: translate3d(5%, -3%, 0) scale(1.08); }
+  0%, 100% { transform: translate3d(-6.77%, 3.38%, 0) scale(1); }
+  50%      { transform: translate3d(8.46%, -5.08%, 0) scale(1.08); }
 }
 
 @keyframes washShade {
-  0%, 100% { transform: translate3d(3%, -2%, 0) scale(1.05); }
-  50%      { transform: translate3d(-4%, 3%, 0) scale(1); }
+  0%, 100% { transform: translate3d(5.08%, -3.38%, 0) scale(1.05); }
+  50%      { transform: translate3d(-6.77%, 5.08%, 0) scale(1); }
 }
 
 
@@ -1502,6 +1539,12 @@
 
 .wave.is-on { opacity: 1; }
 
+/* An idle front is not drawn at all (see retire() in js/water.js):
+   every part of it is at opacity 0 between impacts anyway, and a
+   hidden element holds no compositor layer -- so the refracting
+   backdrop-filter below exists only while a front is crossing. */
+.wave:not(.is-on) { visibility: hidden; }
+
 /* No `width` in the shared rule: `.wave span` is a class AND a
    type, which outranks the bare class on each child, so a width
    set here would win over every one of them. */
@@ -1528,8 +1571,8 @@
     transparent 44%, #000 60%, #000 74%, transparent 92%);
   mask-image: radial-gradient(closest-side,
     transparent 44%, #000 60%, #000 74%, transparent 92%);
-  will-change: transform, opacity;
 }
+.wave.is-on .wave__warp { will-change: transform, opacity; }
 
 .wave__crest {
   width: 86%;

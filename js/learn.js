@@ -2268,16 +2268,26 @@
       if (u) out.push({ url: u, apply: function (blob) { local[u] = blob; } });
     });
     swiftee.sheets().forEach(function (u) {
-      out.push({ url: u, apply: function (blob) { local[u] = blob; if (swiftee.warm) swiftee.warm(u); } });
+      /* the sheet decoded under the blob it will be painted from:
+         the gate waits on it, so Swiftee never blinks on a first clip */
+      out.push({ url: u, apply: function (blob) { local[u] = blob; return swiftee.warm ? swiftee.warm(u) : null; } });
     });
     if (screen) {
       var board = screen.querySelector('.board');
       var bg = board ? getComputedStyle(board).backgroundImage || '' : '';
-      var m = /url\((["']?)(.*?)\1\)/.exec(bg);
-      if (m && m[2] && !/^(blob|data):/i.test(m[2])) {
-        var u2 = m[2];
+      /* the url() it paints: an image-set() offers AVIF and WebP */
+      var u2 = global.GeoLoad && global.GeoLoad.bgUrl
+        ? global.GeoLoad.bgUrl(bg)
+        : (/url\((["']?)(.*?)\1\)/.exec(bg) || [])[2];
+      if (u2 && !/^(blob|data):/i.test(u2)) {
         out.push({ url: u2, apply: function (blob) {
-          board.style.backgroundImage = 'url("' + blob + '"), ' + cs(board, '--board-wash');
+          var probe = new Image();
+          probe.src = blob;
+          var done = probe.decode ? probe.decode().catch(function () {}) : Promise.resolve();
+          return done.then(function () {
+            board.style.backgroundImage = 'url("' + blob + '"), ' + cs(board, '--board-wash');
+            board._geoBg = probe;
+          });
         } });
       }
     }
@@ -2346,7 +2356,6 @@
     init: init, assets: assets, reset: reset, run: run,
     /* the scene tools' side */
     skip: skipScene,
-    page: function () { return pageIndex; },
     pages: function () { return PAGES.slice(); },
     setMuted: setMuted
   };

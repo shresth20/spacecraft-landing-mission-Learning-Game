@@ -67,6 +67,9 @@ body {
 }
 
 img { display: block; max-width: 100%; }
+/* a <picture> only offers its <img> an AVIF: it adds no box of its own,
+   so the <img> lays out exactly as if it stood there alone */
+picture { display: contents; }
 button { font: inherit; color: inherit; }
 
 
@@ -118,13 +121,28 @@ button { font: inherit; color: inherit; }
     filter 1s cubic-bezier(.4, 0, .2, 1),
     visibility 0s linear 1.25s;
   will-change: opacity, transform, filter;
+  /* The sea's sheets blend with the screen (css/water.css, THE SEA),
+     so the screen has to be the isolated group they blend inside.
+     That used to come for free from the filter below; it is said
+     outright now, because the screen at rest no longer has one. */
+  isolation: isolate;
 }
 
+/* At rest the screen carries NO filter and no hint. `blur(0)
+   saturate(1)` looks like nothing, but the browser still renders
+   the whole screen into an offscreen surface and runs the filter
+   over it every frame -- at 2x, a full-frame pass under everything
+   the lens does. Measured in Edge, that pass was where the survey's
+   dropped frames came from (≈100 per flight sequence → 2-4 without
+   it). `none` still interpolates from the blur on the way in (the
+   missing functions count as their identities), so the arrival and
+   the departure look exactly as they did. */
 .screen.is-active {
   opacity: 1;
   visibility: visible;
   transform: scale(1);
-  filter: blur(0) saturate(1);
+  filter: none;
+  will-change: auto;
   transition-delay: 0s;
 }
 
@@ -176,6 +194,37 @@ button { font: inherit; color: inherit; }
 .s1-cockpit { background-image: url("../assets/images/s1-cockpit-2.webp"); }
 .s2-bg      { background-image: url("../assets/images/s2-bg (2).webp"); }
 .drone-hud  { background-image: url("../assets/images/drone-screen.webp"); }
+
+/* The artwork is AVIF wherever image-set() can say so, and the WebP
+   above everywhere else; image-set() itself falls back to the WebP
+   where AVIF will not decode. Behind @supports so a browser that
+   cannot read image-set() keeps the plain url(). js/script.js reads
+   the computed value to know which file the start gate should fetch
+   (GeoLoad.bgUrl, js/preload.js). The sea on the round screens and
+   the start gate's backdrop take theirs the same way, after their
+   own rules, as do the lesson's in css/learn.css. */
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  .s1-bg {
+    background-image:
+      image-set(url("../assets/images/s1-bg.avif") type("image/avif"),
+                url("../assets/images/s1-bg.webp") type("image/webp"));
+  }
+  .s1-cockpit {
+    background-image:
+      image-set(url("../assets/images/s1-cockpit-2.avif") type("image/avif"),
+                url("../assets/images/s1-cockpit-2.webp") type("image/webp"));
+  }
+  .s2-bg {
+    background-image:
+      image-set(url("../assets/images/s2-bg (2).avif") type("image/avif"),
+                url("../assets/images/s2-bg (2).webp") type("image/webp"));
+  }
+  .drone-hud {
+    background-image:
+      image-set(url("../assets/images/drone-screen.avif") type("image/avif"),
+                url("../assets/images/drone-screen.webp") type("image/webp"));
+  }
+}
 
 /* The drone bezel is only there to say "you are looking through a
    camera" while the feed is dark and sweeping. Once the scan lands
@@ -549,7 +598,16 @@ button { font: inherit; color: inherit; }
   opacity: 1;
   transition: opacity 1.6s cubic-bezier(.4, 0, .2, 1);
 }
-.blackout.is-clear { opacity: 0; }
+/* hidden once the fade is over: a cleared blackout is a full-frame
+   layer at opacity 0, and the browser keeps those rasterised -- it
+   held 12.5 MB of tiles for the whole survey (measured, Edge 2x).
+   Coming back (the reset) it is visible again at once, because the
+   base rule's transition has no delay on visibility. */
+.blackout.is-clear {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1.6s cubic-bezier(.4, 0, .2, 1), visibility 0s linear 1.6s;
+}
 
 
 /* ---------------------------------------------------------- scanner */
@@ -1328,6 +1386,13 @@ button { font: inherit; color: inherit; }
    numbers.
    ============================================================ */
 .s3-bg { background-image: url("../assets/images/s2-bg (2).webp"); }
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  .s3-bg {
+    background-image:
+      image-set(url("../assets/images/s2-bg (2).avif") type("image/avif"),
+                url("../assets/images/s2-bg (2).webp") type("image/webp"));
+  }
+}
 
 
 /* ---------------------------------------------------------- the spaceship
@@ -2240,6 +2305,13 @@ button { font: inherit; color: inherit; }
   background-position: center;
   background-size: 100% 100%;   /* stretched to fill, as specified */
   transition: opacity .7s ease, visibility 0s linear .7s;
+}
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  .gate {
+    background-image:
+      image-set(url("../assets/images/welcome-screen.avif") type("image/avif"),
+                url("../assets/images/welcome-screen.webp") type("image/webp"));
+  }
 }
 .gate.is-gone { opacity: 0; visibility: hidden; pointer-events: none; }
 
