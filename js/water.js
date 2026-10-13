@@ -760,6 +760,9 @@
     Array.prototype.forEach.call(stage.querySelectorAll('.zone, .pad'), attach);
 
     ready = true;
+
+    /* after dress(), so every screen's sea is in place to be read */
+    seaCanvas(stage);
   }
 
 
@@ -971,6 +974,458 @@
     return Math.max(20, Math.min(70, round2(w)));
   }
 
+
+  /* ============================================================
+     THE SEA ON ONE CANVAS
+
+     Why this exists (measured, Edge 155 at 2x, 2026-10-13): the
+     sea photograph and the eight blended sheets over it were nine
+     separately composited, animated layers, and an animated layer is
+     rasterised over its WHOLE box, margin included. Together they
+     held ~250 MB of the page's tile memory. With the islands and
+     their water on top, a camera flight asked for ~490-555 MB against
+     the browser's fixed 512 MB tile budget; the tiles that did not
+     fit were simply not drawn -- the broken rectangles, the islands
+     missing for a moment, the flicker. Raising the budget with
+     --force-gpu-mem-available-mb=1024 made every one of them go away
+     (1 bad frame in a full run, from ~300), which is what pinned it.
+
+     So the stack is drawn into ONE canvas the size of the screen:
+     one texture instead of nine oversized ones. Nothing about the
+     look moves here. The original elements stay in the page --
+     hidden, so they hold no layer -- and keep running every CSS
+     animation and every camera animation they always had; each frame
+     the canvas reads their live transform, opacity, blend mode and
+     box, and paints their computed backgrounds, in their order,
+     with their blend modes. css/water.css stays the one place the
+     sea is described.
+
+     It only takes over a screen once that screen's photograph is
+     decoded, and a background it cannot read (anything outside the
+     gradient forms below) leaves the screen on its DOM layers. The
+     glare is not part of it: it paints OVER the islands.
+     ?seacanvas=0 switches it off, for comparison.
+     ============================================================ */
+  var SC_OFF = /[?&]seacanvas=0\b/.test(global.location.search);
+  var scScreens = [];
+  var scScratch = null;
+  var scTiles = Object.create(null);
+  var scImages = Object.create(null);
+  var scRunning = false;
+
+  function scSplit(str) {
+    var out = [], depth = 0, cur = '';
+    for (var i = 0; i < str.length; i++) {
+      var ch = str[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      if (ch === ',' && depth === 0) { out.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  }
+
+  function scColor(s) {
+    if (s === 'transparent') return [0, 0, 0, 0];
+    var m = /^rgba?\(([^)]*)\)$/.exec(s);
+    if (!m) return null;
+    var n = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
+    return [n[0], n[1], n[2], n.length > 3 ? n[3] : 1];
+  }
+
+  /* a length in px along `ref` (a % of it), or null */
+  function scLen(s, ref) {
+    var m = /^(-?[\d.]+)(px|%|vmin|vmax|vw|vh)?$/.exec(s);
+    if (!m) return null;
+    var v = parseFloat(m[1]), u = m[2] || 'px';
+    var vw = global.innerWidth / 100, vh = global.innerHeight / 100;
+    if (u === 'px') return v;
+    if (u === '%') return v / 100 * ref;
+    if (u === 'vw') return v * vw;
+    if (u === 'vh') return v * vh;
+    if (u === 'vmin') return v * Math.min(vw, vh);
+    return v * Math.max(vw, vh);
+  }
+
+  /* "color [pos]" stops → [{ c:[r,g,b,a], p:px|null }] */
+  function scStops(args) {
+    var out = [];
+    for (var i = 0; i < args.length; i++) {
+      var a = args[i];
+      var m = /^(rgba?\([^)]*\)|transparent)\s*(\S+)?$/.exec(a);
+      if (!m) return null;
+      var c = scColor(m[1]);
+      if (!c) return null;
+      out.push({ c: c, raw: m[2] || null });
+    }
+    return out.length >= 2 ? out : null;
+  }
+
+  /* resolve stop positions to fractions of `len`, filling the gaps
+     the way CSS does, then spread colour transitions over premultiplied
+     steps -- CSS interpolates premultiplied, a canvas gradient does
+     not, and between two stops of different colour AND alpha the two
+     would otherwise part company */
+  function scResolve(stops, len) {
+    var t = stops.map(function (s) { return s.raw == null ? null : scLen(s.raw, len) / len; });
+    if (t.some(function (v, i) { return stops[i].raw != null && (v == null || isNaN(v)); })) return null;
+    if (t[0] == null) t[0] = 0;
+    if (t[t.length - 1] == null) t[t.length - 1] = 1;
+    for (var i = 1; i < t.length; i++) {
+      if (t[i] == null) {
+        var j = i; while (t[j] == null) j++;
+        for (var k = i; k < j; k++) t[k] = t[i - 1] + (t[j] - t[i - 1]) * (k - i + 1) / (j - i + 1);
+      }
+      if (t[i] < t[i - 1]) t[i] = t[i - 1];
+    }
+    var out = [];
+    for (i = 0; i < stops.length; i++) {
+      var a = stops[i].c;
+      out.push({ t: t[i], c: a });
+      if (i < stops.length - 1) {
+        var b = stops[i + 1].c;
+        if ((a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2]) && (a[3] > 0 || b[3] > 0)) {
+          for (var n = 1; n < 8; n++) {
+            var f = n / 8, al = a[3] + (b[3] - a[3]) * f;
+            var c = [0, 1, 2].map(function (q) {
+              return al > 0 ? (a[q] * a[3] + (b[q] * b[3] - a[q] * a[3]) * f) / al : a[q] + (b[q] - a[q]) * f;
+            });
+            out.push({ t: t[i] + (t[i + 1] - t[i]) * f, c: [c[0], c[1], c[2], al] });
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  function scRgba(c) {
+    return 'rgba(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ',' + c[3] + ')';
+  }
+
+  function scLerp(a, b, f) { return [0, 1, 2, 3].map(function (q) { return a[q] + (b[q] - a[q]) * f; }); }
+
+  /* a canvas gradient from fractional stops, clipped to [0, 1] */
+  function scAddStops(g, st) {
+    function at(x) {
+      if (x <= st[0].t) return st[0].c;
+      for (var i = 1; i < st.length; i++) {
+        if (x <= st[i].t) {
+          var span = st[i].t - st[i - 1].t;
+          return span > 0 ? scLerp(st[i - 1].c, st[i].c, (x - st[i - 1].t) / span) : st[i].c;
+        }
+      }
+      return st[st.length - 1].c;
+    }
+    g.addColorStop(0, scRgba(at(0)));
+    st.forEach(function (s) { if (s.t > 0 && s.t < 1) g.addColorStop(s.t, scRgba(s.c)); });
+    g.addColorStop(1, scRgba(at(1)));
+    return g;
+  }
+
+  /* one background image → { kind, ... } or null when unsupported */
+  function scParse(img) {
+    var m = /^url\((["']?)(.*)\1\)$/.exec(img);
+    if (m) return { kind: 'url', src: m[2] };
+    m = /^(repeating-)?(linear|radial)-gradient\((.*)\)$/.exec(img);
+    if (!m) return null;
+    var args = scSplit(m[3]);
+    var g = { kind: m[2], repeating: !!m[1] };
+    if (m[2] === 'linear') {
+      var a0 = args[0], ang = 180;
+      if (/^-?[\d.]+deg$/.test(a0)) { ang = parseFloat(a0); args.shift(); }
+      else if (/^to /.test(a0)) {
+        var side = { 'to top': 0, 'to right': 90, 'to bottom': 180, 'to left': 270 }[a0];
+        if (side == null) return null;
+        ang = side; args.shift();
+      }
+      g.angle = ang;
+    } else {
+      if (g.repeating) return null;
+      var head = args[0];
+      if (!/^(rgba?\(|transparent)/.test(head)) {
+        args.shift();
+        var parts = head.split(/\s+at\s+/);
+        var size = parts[0].replace(/\b(ellipse|circle)\b/, '').trim();
+        if (/\bcircle\b/.test(parts[0])) return null;
+        g.size = size || 'farthest-corner';
+        g.at = parts[1] ? parts[1].trim().split(/\s+/) : ['50%', '50%'];
+      } else { g.size = 'farthest-corner'; g.at = ['50%', '50%']; }
+    }
+    g.stops = scStops(args);
+    return g.stops ? g : null;
+  }
+
+  function scDpr() { return global.devicePixelRatio || 1; }
+
+  /* paint gradient `g` over the box (0,0,w,h) of `ctx`'s current space */
+  function scPaintGradient(ctx, g, w, h) {
+    if (g.kind === 'linear') {
+      var rad = g.angle * Math.PI / 180;
+      var dx = Math.sin(rad), dy = -Math.cos(rad);
+      var L = Math.abs(w * dx) + Math.abs(h * dy);
+      var sx = w / 2 - dx * L / 2, sy = h / 2 - dy * L / 2;
+      if (!g.repeating) {
+        var st = scResolve(g.stops, L);
+        if (!st) return false;
+        ctx.fillStyle = scAddStops(ctx.createLinearGradient(sx, sy, sx + dx * L, sy + dy * L), st);
+        ctx.fillRect(0, 0, w, h);
+        return true;
+      }
+      /* repeating: one period on a strip, repeated as a pattern along the
+         gradient line from the line's own start, as CSS anchors it */
+      var px = g.stops.map(function (s) { return s.raw == null ? null : scLen(s.raw, L); });
+      if (px[0] == null) px[0] = 0;
+      if (px[px.length - 1] == null || px.some(function (v, i) { return g.stops[i].raw != null && v == null; })) return false;
+      var P = px[px.length - 1] - px[0];
+      if (!(P > 0)) return false;
+      var res = Math.max(8, Math.round(P * scDpr() * 2));
+      var key = 'r|' + JSON.stringify(g.stops) + '|' + res + '|' + P.toFixed(3);
+      var strip = scTiles[key];
+      if (!strip) {
+        strip = doc.createElement('canvas');
+        strip.width = res; strip.height = 1;
+        var sc = strip.getContext('2d');
+        var rel = g.stops.map(function (s, i) { return { c: s.c, raw: px[i] == null ? null : ((px[i] - px[0]) / P * 100) + '%' }; });
+        var rst = scResolve(rel, 1);
+        sc.fillStyle = scAddStops(sc.createLinearGradient(0, 0, res, 0), rst);
+        sc.fillRect(0, 0, res, 1);
+        scTiles[key] = strip;
+      }
+      var pat = ctx.createPattern(strip, 'repeat');
+      var o = px[0];
+      pat.setTransform(new DOMMatrix().translate(sx + dx * o, sy + dy * o)
+        .rotate(Math.atan2(dy, dx) * 180 / Math.PI).scale(P / res, 1));
+      ctx.fillStyle = pat;
+      ctx.fillRect(0, 0, w, h);
+      return true;
+    }
+    /* radial, ellipse */
+    var cx = scLen(g.at[0], w), cy = scLen(g.at[1] || '50%', h);
+    if (cx == null || cy == null) return false;
+    var rx, ry, sz = g.size.split(/\s+/);
+    if (g.size === 'closest-side') {
+      rx = Math.min(cx, w - cx); ry = Math.min(cy, h - cy);
+    } else if (g.size === 'farthest-corner') {
+      var fx = Math.max(cx, w - cx), fy = Math.max(cy, h - cy), k = fx / fy;
+      ry = Math.sqrt(fx * fx / (k * k) + fy * fy); rx = k * ry;
+    } else if (sz.length === 2) {
+      rx = scLen(sz[0], w); ry = scLen(sz[1], h);
+    } else return false;
+    if (!(rx > 0 && ry > 0)) return false;
+    var rst2 = scResolve(g.stops, rx);
+    if (!rst2) return false;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, ry / rx);
+    ctx.fillStyle = scAddStops(ctx.createRadialGradient(0, 0, 0, 0, 0, rx), rst2);
+    ctx.fillRect(-cx, -cy * rx / ry, w, h * rx / ry);
+    ctx.restore();
+    return true;
+  }
+
+  function scImage(src) {
+    var e = scImages[src];
+    if (e) return e;
+    var im = new Image();
+    e = scImages[src] = { img: im, ok: false };
+    im.src = src;
+    (im.decode ? im.decode() : Promise.resolve()).then(function () { e.ok = im.naturalWidth > 0; }, function () {});
+    return e;
+  }
+
+  /* one background layer into the element's box (0,0,w,h) */
+  function scLayer(ctx, layer, w, h) {
+    var g = layer.g;
+    var bs = layer.size === 'auto' || layer.size === 'auto auto' ? [w, h]
+      : layer.size.split(/\s+/).map(function (v, i) { return scLen(v, i ? h : w); });
+    if (bs.length === 1) bs.push(g.kind === 'url' ? bs[0] : h);
+    var tw = bs[0], th = bs[1];
+    if (!(tw > 0 && th > 0)) return false;
+    var pp = layer.pos.split(/\s+/);
+    var ox = /%$/.test(pp[0]) ? (w - tw) * parseFloat(pp[0]) / 100 : scLen(pp[0], w);
+    var oy = /%$/.test(pp[1]) ? (h - th) * parseFloat(pp[1]) / 100 : scLen(pp[1], h);
+    if (ox == null || oy == null) return false;
+    var single = layer.repeat === 'no-repeat' ||
+      (Math.abs(tw - w) < 0.5 && Math.abs(th - h) < 0.5 && Math.abs(ox) < 0.5 && Math.abs(oy) < 0.5);
+
+    if (g.kind === 'url') {
+      var e = scImage(g.src);
+      if (!e.ok || !single) return e.ok ? false : 'wait';
+      ctx.drawImage(e.img, ox, oy, tw, th);
+      return true;
+    }
+    if (single) {
+      ctx.save(); ctx.translate(ox, oy);
+      var ok = scPaintGradient(ctx, g, tw, th);
+      ctx.restore();
+      return ok;
+    }
+    /* a repeating tile: drawn once, at a little over the device
+       resolution, and laid as a pattern from the position CSS gives it */
+    var res = scDpr() * 1.15;
+    var Tw = Math.max(2, Math.round(tw * res)), Th = Math.max(2, Math.round(th * res));
+    var key = 't|' + layer.raw + '|' + Tw + 'x' + Th;
+    var tile = scTiles[key];
+    if (!tile) {
+      tile = doc.createElement('canvas');
+      tile.width = Tw; tile.height = Th;
+      var tc = tile.getContext('2d');
+      tc.scale(Tw / tw, Th / th);
+      if (!scPaintGradient(tc, g, tw, th)) return false;
+      scTiles[key] = tile;
+    }
+    var pat = ctx.createPattern(tile, 'repeat');
+    pat.setTransform(new DOMMatrix().translate(ox, oy).scale(tw / Tw, th / Th));
+    ctx.fillStyle = pat;
+    ctx.fillRect(0, 0, w, h);
+    return true;
+  }
+
+  var SC_BLEND = { normal: 'source-over' };
+
+  /* the element's computed background, parsed once per distinct value */
+  function scLayers(el, cs) {
+    var raw = cs.backgroundImage + '|' + cs.backgroundSize + '|' + cs.backgroundPosition + '|' + cs.backgroundRepeat;
+    if (el._scRaw === raw) return el._scLayers;
+    el._scRaw = raw;
+    var imgs = scSplit(cs.backgroundImage), sizes = scSplit(cs.backgroundSize),
+        poss = scSplit(cs.backgroundPosition), reps = scSplit(cs.backgroundRepeat);
+    var out = [];
+    for (var i = 0; i < imgs.length; i++) {
+      if (imgs[i] === 'none') continue;
+      var g = scParse(imgs[i]);
+      if (!g) { out = null; break; }
+      out.push({ g: g, raw: imgs[i], size: sizes[i % sizes.length], pos: poss[i % poss.length],
+                 repeat: reps[i % reps.length] });
+    }
+    el._scLayers = out;
+    return out;
+  }
+
+  /* one frame of one screen; false = something it cannot draw */
+  function scDraw(entry) {
+    var cv = entry.canvas, screen = entry.screen;
+    var dpr = scDpr();
+    var W = screen.clientWidth, H = screen.clientHeight;
+    var BW = Math.round(W * dpr), BH = Math.round(H * dpr);
+    if (cv.width !== BW || cv.height !== BH) { cv.width = BW; cv.height = BH; }
+    var ctx = entry.ctx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, BW, BH);
+
+    for (var i = 0; i < entry.els.length; i++) {
+      var el = entry.els[i];
+      var cs = global.getComputedStyle(el);
+      if (cs.display === 'none') continue;
+      var op = parseFloat(cs.opacity);
+      if (!(op > 0)) continue;
+      var layers = scLayers(el, cs);
+      if (!layers) return false;
+      if (!layers.length) continue;
+      var w = parseFloat(cs.width), h = parseFloat(cs.height);
+      var x = parseFloat(cs.left), y = parseFloat(cs.top);
+      var org = cs.transformOrigin.split(' ').map(parseFloat);
+      var M = cs.transform && cs.transform !== 'none' ? new DOMMatrix(cs.transform) : new DOMMatrix();
+      var place = new DOMMatrix().scale(dpr, dpr).translate(x + org[0], y + org[1])
+        .multiply(M).translate(-org[0], -org[1]);
+      var blend = SC_BLEND[cs.mixBlendMode] || cs.mixBlendMode;
+      var group = layers.length > 1 && (blend !== 'source-over' || op < 1);
+      var target = ctx;
+      if (group) {
+        if (!scScratch) scScratch = doc.createElement('canvas');
+        if (scScratch.width !== BW || scScratch.height !== BH) { scScratch.width = BW; scScratch.height = BH; }
+        target = scScratch.getContext('2d');
+        target.setTransform(1, 0, 0, 1, 0, 0);
+        target.globalAlpha = 1;
+        target.globalCompositeOperation = 'source-over';
+        target.clearRect(0, 0, BW, BH);
+      } else {
+        ctx.globalCompositeOperation = blend;
+        ctx.globalAlpha = op;
+      }
+      target.setTransform(place);
+      target.save();
+      target.beginPath(); target.rect(0, 0, w, h); target.clip();
+      for (var j = layers.length - 1; j >= 0; j--) {          /* the first listed is on top */
+        var r = scLayer(target, layers[j], w, h);
+        if (r === 'wait') { target.restore(); return 'wait'; }
+        if (!r) { target.restore(); return false; }
+      }
+      target.restore();
+      if (group) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalCompositeOperation = blend;
+        ctx.globalAlpha = op;
+        ctx.drawImage(scScratch, 0, 0);
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    return true;
+  }
+
+  function scVisible(screen) {
+    return screen.classList.contains('is-active') || screen.classList.contains('is-leaving');
+  }
+
+  function scFrame() {
+    var any = false;
+    scScreens.forEach(function (entry) {
+      if (entry.dead) return;
+      if (!scVisible(entry.screen) || doc.hidden) {
+        /* a screen nobody can see gives its pixels back */
+        if (entry.canvas.width) { entry.canvas.width = 0; entry.canvas.height = 0; }
+        return;
+      }
+      any = true;
+      var r = scDraw(entry);
+      if (r === true) {
+        if (!entry.on) { entry.on = true; entry.screen.classList.add('sea-canvas-on'); }
+      } else if (r === false) {
+        /* a background it cannot reproduce: this screen keeps its layers */
+        entry.dead = true;
+        entry.screen.classList.remove('sea-canvas-on');
+        entry.canvas.remove();
+      }
+      /* 'wait': the photograph is still decoding -- the DOM layers stay
+         up, untouched, until the first frame the canvas can draw whole */
+    });
+    if (any || scScreens.some(function (e) { return !e.dead; })) global.requestAnimationFrame(scFrame);
+    else scRunning = false;
+  }
+
+  function scSupported() {
+    var c = doc.createElement('canvas').getContext('2d');
+    if (!c || typeof global.DOMMatrix !== 'function' || !c.createPattern) return false;
+    var ok = true;
+    ['soft-light', 'overlay', 'screen'].forEach(function (m) {
+      c.globalCompositeOperation = m;
+      if (c.globalCompositeOperation !== m) ok = false;
+    });
+    var p = c.createPattern(doc.createElement('canvas'), 'repeat');
+    return ok && !!(p && p.setTransform);
+  }
+
+  function seaCanvas(stage) {
+    if (SC_OFF || !scSupported()) return;
+    Array.prototype.forEach.call(stage.querySelectorAll('.screen'), function (screen) {
+      var bg = screen.querySelector(':scope > .s2-bg, :scope > .s3-bg');
+      if (!bg) return;
+      var els = [bg].concat(Array.prototype.filter.call(
+        screen.querySelectorAll(':scope > .sea'),
+        function (n) { return !n.classList.contains('sea__glare'); }));
+      var cv = doc.createElement('canvas');
+      cv.className = 'sea-canvas';
+      cv.setAttribute('aria-hidden', 'true');
+      cv.width = 0; cv.height = 0;
+      bg.parentNode.insertBefore(cv, bg);
+      scScreens.push({ screen: screen, canvas: cv, ctx: cv.getContext('2d'), els: els, on: false, dead: false });
+    });
+    if (scScreens.length && !scRunning) { scRunning = true; global.requestAnimationFrame(scFrame); }
+  }
 
   global.GeoWater = {
     init: init,

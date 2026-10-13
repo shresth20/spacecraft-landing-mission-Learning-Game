@@ -173,6 +173,26 @@
   pointer-events: none;
 }
 
+/* ---------------------------------------------------------- one canvas
+   THE SEA ON ONE CANVAS in js/water.js: once a screen's canvas has
+   drawn its first whole frame, the photograph and the sheets it
+   reproduces are hidden -- kept in the page and still animating, so
+   the canvas can read them, but holding no layer and no tiles. The
+   glare is not among them: it goes over the islands. Before that
+   first frame (and wherever the canvas declines a screen) nothing
+   here applies and the screen paints exactly as it always did. */
+.sea-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+.sea-canvas-on > .s2-bg,
+.sea-canvas-on > .s3-bg,
+.sea-canvas-on > .sea:not(.sea__glare) { visibility: hidden; }
+
 /* ---------------------------------------------------------- caustics
    The net of focused sunlight on a shallow bottom. Tiles of radial
    gradient at three sizes and three phases: where they overlap the

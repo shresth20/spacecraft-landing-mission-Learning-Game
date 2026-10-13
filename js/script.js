@@ -1668,10 +1668,13 @@
      Both engines answer the same calls: init, assets, reset, run,
      skip, pages, setMuted.
      ============================================================ */
-  function lessonScreen(node, engine) {
+  /* `firstPage` is the learning module's number for the lesson's
+     first page: the section menu tags each page with its own */
+  function lessonScreen(node, engine, firstPage) {
     return {
       node:   function () { return node(); },
       lesson: function () { return global[engine] || null; },
+      firstPage: firstPage,
       reset:  function () { var L = global[engine]; if (L) L.reset(); },
       run:    function (opts) { return runLesson(global[engine], opts); }
     };
@@ -1707,7 +1710,7 @@
     { node: function () { return el.screenCockpit; }, reset: resetCockpit, run: runCockpit },
     { node: function () { return el.screenDrone; },   reset: resetSurvey,  run: runSurvey,
       round: function () { return survey; } },
-    lessonScreen(function () { return el.screenLearn; }, 'GeoLearn')
+    lessonScreen(function () { return el.screenLearn; }, 'GeoLearn', 2)
   ];
 
   /* Screen 2 is a playing screen like the others once js/pages.js
@@ -1757,7 +1760,7 @@
       /* the quadrilateral survey's gallery hands over to the second
          lesson, and the quadrilateral landing follows it */
       if (round.lesson === 'quad' && el.screenLearnQuad) {
-        SCREENS.push(lessonScreen(function () { return el.screenLearnQuad; }, 'GeoLearnQuad'));
+        SCREENS.push(lessonScreen(function () { return el.screenLearnQuad; }, 'GeoLearnQuad', 4));
       }
     });
   }
@@ -1875,7 +1878,6 @@
   var sectionIndex = -1;        /* where we are in that order */
   var sectionSeq = 0;           /* bumped at every section boundary: what a skip watches */
   var sectionHistory = [];      /* the sections played so far, most recent last */
-  var learnAt = -1;             /* the lesson's index into SCREENS */
   var skipping = false;
   var tripBtn = null;           /* the tool whose errand is running, for its `working` state */
   var jumpOpts = [];
@@ -1887,11 +1889,10 @@
 
   function sectionName(round, site) {
     if (round.kind === 'survey') {
-      if (site.kind === 'gallery') return T('secSurveyGallery');
+      if (site.kind === 'gallery') return T(round.gallery || 'secSurveyGallery');
       return T('secSurveyShape', { shape: shapeName(site, true) });
     }
-    if (round.kind === 'landing') return T('secLandingSite', { shape: shapeName(site) });
-    return T(site.kind === 'shape' ? 'secRoundShape' : 'secRoundLanding', { shape: shapeName(site) });
+    return T('secLandingSite', { shape: shapeName(site) });
   }
 
   function buildSections() {
@@ -1899,21 +1900,27 @@
     secAt = [];
     SCREENS.forEach(function (screen, s) {
       var node = screen.node();
-      var names;
+      var names, group, first = 0;
       if (node === el.screenCockpit) {
         names = [T('secCockpit')];
-      } else if (node === el.screenLearn) {
-        learnAt = s;
-        var L = global.GeoLearn;
+        group = T('jumpGroupCockpit');
+      } else if (screen.lesson) {
+        var L = screen.lesson();
         names = (L && L.pages ? L.pages() : []).map(function (k) { return T(k); });
         if (!names.length) names = [T('secLesson')];
+        /* the menu says which of the learning module's pages these are */
+        first = screen.firstPage || 0;
+        group = first ? T('jumpGroupLesson', { from: first, to: first + names.length - 1 })
+                      : T('secLesson');
       } else {
         var round = screen.round ? screen.round() : null;
         names = round ? round.sites.map(function (site) { return sectionName(round, site); })
                       : [T('secSurvey')];
+        group = round && round.kind === 'landing' ? T('jumpGroupLanding') : T('jumpGroupSurvey');
       }
       secAt[s] = names.map(function (name, i) {
-        SECTIONS.push({ screen: s, site: i, name: name });
+        SECTIONS.push({ screen: s, site: i, name: name, group: group,
+                        page: first ? first + i : 0 });
         return SECTIONS.length - 1;
       });
     });
@@ -1955,7 +1962,24 @@
   /* ---- the menu ---- */
   function buildJump() {
     el.jumpMenu.textContent = '';
+    /* the columns sit inside the menu, which scrolls: a screen too
+       short for every column scrolls down rather than hiding the
+       sections that do not fit off to the side */
+    var cols = document.createElement('div');
+    cols.className = 'jump-cols';
+    el.jumpMenu.appendChild(cols);
+    var group = null;
     SECTIONS.forEach(function (sec, i) {
+      /* each part of the flow under its own heading: the game's
+         screens and the learning module's pages, in mission order */
+      if (sec.group !== group) {
+        group = sec.group;
+        var head = document.createElement('div');
+        head.className = 'jump-group' + (sec.page ? ' jump-group--learn' : '');
+        head.setAttribute('role', 'presentation');
+        head.textContent = group;
+        cols.appendChild(head);
+      }
       var opt = document.createElement('button');
       opt.type = 'button';
       opt.className = 'jump-opt';
@@ -1969,12 +1993,18 @@
       name.textContent = sec.name;
       opt.appendChild(n);
       opt.appendChild(name);
+      if (sec.page) {
+        var pg = document.createElement('span');
+        pg.className = 'jump-page';
+        pg.textContent = T('jumpPage', { n: sec.page });
+        opt.appendChild(pg);
+      }
       opt.addEventListener('click', function (e) {
         e.stopPropagation();
         openJump(false);
         jumpTo(i);
       });
-      el.jumpMenu.appendChild(opt);
+      cols.appendChild(opt);
     });
     jumpOpts = Array.prototype.slice.call(el.jumpMenu.querySelectorAll('.jump-opt'));
   }
@@ -2103,8 +2133,10 @@
   function skipSection() {
     if (busy || skipping) return;
 
-    if (current === learnAt) {
-      if (global.GeoLearn && global.GeoLearn.skip) global.GeoLearn.skip();
+    /* a lesson skips itself */
+    if (SCREENS[current].lesson) {
+      var L = SCREENS[current].lesson();
+      if (L && L.skip) L.skip();
       return;
     }
 
@@ -2150,7 +2182,7 @@
   function applyMute() {
     var off = !!(global.Motion && global.Motion.isMuted());
     if (A.setMuted) A.setMuted(off);
-    if (global.GeoLearn && global.GeoLearn.setMuted) global.GeoLearn.setMuted(off);
+    lessons().forEach(function (L) { if (L.setMuted) L.setMuted(off); });
     showMute();
   }
 
@@ -2329,12 +2361,46 @@
     );
   }
 
-  /* the lesson's own pieces: its board, its mascot's sprite sheets
-     and its clips, named by js/learn.js and weighed here */
+  /* the lessons' own pieces: the board, the mascot's sprite sheets
+     and the clips, named by js/learn.js and js/learn-quad.js and
+     weighed here */
   function learnJobs() {
-    if (!global.GeoLearn || !global.GeoLearn.assets) return [];
-    return global.GeoLearn.assets().map(function (a) {
-      return { url: a.url, size: sizeOf(a.url), apply: a.apply || null };
+    var out = [];
+    lessons().forEach(function (L) {
+      if (!L.assets) return;
+      L.assets().forEach(function (a) {
+        out.push({ url: a.url, size: sizeOf(a.url), apply: a.apply || null });
+      });
+    });
+    return out;
+  }
+
+  /* One fetch per file. The voice pack, the lessons and the artwork
+     can each name the same file (a clip the mission and a lesson both
+     play), and the loader fetches whatever it is handed: a file named
+     twice is fetched once here and handed to every taker. */
+  function mergeJobs(jobs) {
+    var byUrl = {};
+    var out = [];
+    jobs.forEach(function (j) {
+      var key;
+      try { key = new URL(j.url, document.baseURI).href; } catch (e) { key = j.url; }
+      var had = byUrl[key];
+      if (!had) {
+        had = byUrl[key] = { url: j.url, size: j.size, takers: [] };
+        out.push(had);
+      }
+      if (j.apply) had.takers.push(j.apply);
+    });
+    return out.map(function (j) {
+      var takers = j.takers;
+      return {
+        url: j.url,
+        size: j.size,
+        apply: takers.length ? function (blobUrl) {
+          return Promise.all(takers.map(function (f) { return f(blobUrl); }));
+        } : null
+      };
     });
   }
 
@@ -2399,7 +2465,7 @@
   var LOAD = global.GeoLoad || { run: function () { return Promise.resolve(); } };
 
   function runGate() {
-    var jobs   = imageJobs().concat(audioJobs(), fontJobs(), learnJobs());
+    var jobs   = mergeJobs(imageJobs().concat(audioJobs(), fontJobs(), learnJobs()));
     var target = 0;             // where the bytes say the bar should be
     var shown  = 0;             // where the bar actually is
     var raf    = 0;
@@ -2519,7 +2585,7 @@
     var hit = node.closest(TAPPABLE);
     if (!hit || hit.disabled) return;
     if (hit.getAttribute('aria-disabled') === 'true') return;
-    if (hit.closest('.screen--learn')) return;
+    if (hit.closest('.screen--learn, .screen--learnq')) return;
 
     /* `keep` so goTo()'s audio cut does not eat the click of the
        very button that asked for the jump — see fireShot() */
@@ -2553,14 +2619,18 @@
     addRoundScreens();
     wireSurvey();
 
-    /* the lesson: its board, its mascot and its own engine -- and the
-       scene tools hear from it as each of its pages opens */
-    if (global.GeoLearn && el.screenLearn) {
-      global.GeoLearn.init({
-        screen: el.screenLearn,
-        onPage: function (page) { enterSection(learnAt, page); }
-      });
-    }
+    /* the lessons: each its board, its mascot and its own engine --
+       and the scene tools hear from each as its pages open */
+    SCREENS.forEach(function (screen, s) {
+      if (!screen.lesson) return;
+      var L = screen.lesson();
+      if (L && L.init) {
+        L.init({
+          screen: screen.node(),
+          onPage: function (page) { enterSection(s, page); }
+        });
+      }
+    });
 
     /* and after both, because every island on every screen needs a
        shoreline built from its own silhouette */

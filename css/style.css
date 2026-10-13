@@ -2141,13 +2141,16 @@ button { font: inherit; color: inherit; }
   50%      { transform: translateX(25%); }
 }
 
+/* The whole mission at once: every section, the game's screens and
+   the learning module's pages, flowed into as many columns as the
+   screen has room for, so nothing hides above the fold. It still
+   scrolls on a screen too small to hold it all. */
 .jump-menu {
   position: absolute;
   left: 0;
   bottom: calc(100% + 8px);
-  min-width: max(280px, 100%);
-  max-width: min(76vw, 380px);
-  max-height: min(62vh, 420px);
+  width: min(calc(100vw - 2 * max(14px, 2.2vw)), 1200px);
+  max-height: min(calc(100vh - 2 * clamp(40px, 2.9vw, 46px) - 40px), 820px);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 6px;
@@ -2161,21 +2164,49 @@ button { font: inherit; color: inherit; }
 }
 .jump.open .jump-menu { display: block; }
 
+.jump-cols {
+  columns: 270px;
+  column-gap: 4px;
+}
+
+/* a part of the flow: the game's or the learning module's */
+.jump-group {
+  break-inside: avoid;
+  break-after: avoid;
+  padding: clamp(6px, 1vh, 10px) clamp(8px, .9vw, 11px) 3px;
+  font-size: clamp(10px, 1.25vh, 12px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(120, 220, 255, .85);
+}
+.jump-group--learn { color: rgba(255, 196, 150, .92); }
+
 .jump-opt {
   display: flex;
   align-items: baseline;
   gap: .55em;
   width: 100%;
+  break-inside: avoid;
   font: inherit;
   font-size: clamp(11px, 1.5vh, 14px);
   font-weight: 700;
   text-align: left;
   color: rgba(200, 240, 255, .92);
-  padding: clamp(5px, .8vh, 8px) clamp(8px, .9vw, 11px);
+  padding: clamp(4px, .6vh, 6px) clamp(8px, .9vw, 11px);
   border: 0;
   border-radius: 9px;
   background: transparent;
   cursor: pointer;
+}
+/* the learning module's own number for a lesson page */
+.jump-page {
+  margin-left: auto;
+  padding-left: .4em;
+  flex: 0 0 auto;
+  font-size: .82em;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 196, 150, .8);
 }
 .jump-opt:hover,
 .jump-opt:focus-visible {

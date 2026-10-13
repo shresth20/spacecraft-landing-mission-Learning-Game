@@ -728,6 +728,20 @@
   50%      { transform: scale(1.07); }
 }
 
+/* ---------- Next, in the board's corner ----------
+ * The module's own rule (css/style.css, ".board > .next-btn"): the disc
+ * sits the same distance in from the board's right edge and its bottom
+ * edge, OUT of the grid's flow, so the stage keeps the whole height. Left
+ * in the flow, the disc opened the footer row as it arrived on page 3 and
+ * the triangles and the formula were pushed up the board. */
+.screen--learn .board > .next-btn {
+  position: absolute;
+  right: clamp(14px, 2.6vh, 26px);
+  bottom: clamp(14px, 2.6vh, 26px);
+  margin: 0;
+  place-self: auto;
+}
+
 /* ---------- drop slots ---------- */
 .screen--learn .slot {
   --slot-border: 2.5px;

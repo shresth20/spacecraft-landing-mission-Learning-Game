@@ -2315,6 +2315,10 @@
     var page = Math.max(0, Math.min(PAGES.length - 1, opts.page | 0));
     var mine = ++runToken;
     fastForward = false;
+    /* motion.js reads one lesson's fast-forward at a time: the second
+       lesson (js/learn-quad.js) binds its own while it plays, so this
+       one takes the hook back whenever it runs */
+    Motion.bind({ fast: function () { return fastForward; } });
     lockInput(true);
 
     return (async function () {
