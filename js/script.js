@@ -54,12 +54,32 @@
         site, and the same is asked of the rectangle-hulled craft;
         then the TRIANGLE's. The last NEXT carries the mission on
 
-   Screens 5 to 7 · a round each for the parallelogram, the
-     trapezium and the rhombus: one shape site and one landing site
-     on one sea, as the survey used to ask the triangle.
+   Screen 5 · the quadrilateral survey -- the survey again, for the
+     three shapes the first lesson did not cover. No dark to scan:
+     it opens on the water at survey height, and the archipelago
+     breaks the surface under the lens
+     → down on the PARALLELOGRAM site: "look at the shapes" ·
+        "select all the parallelogram landing zones"; all found, the
+        lens climbs, the wrong shapes sink, "correct! these are the
+        parallelogram landing zones" from the air, and across to the
+        RHOMBUS site, then the TRAPEZIUM site
+     → up, across, and down on their GALLERY, each named: "To find
+        the area of these landing zones, we need to recall the area
+        of these quadrilaterals." · "Let's recall."
+
+   Screen 6 · the second lesson (js/learn-quad.js)
+     the learning module's page 4, the general quadrilateral cut by
+     one diagonal, and page 28, the trapezium's check; its last NEXT
+     brings the mission back
+
+   Screen 7 · the quadrilateral landing -- the landing again: "We
+     have recalled the area of these quadrilaterals." · "Now, we can
+     safely land the spacecraft in the landing zone." from the air,
+     then the PARALLELOGRAM, RHOMBUS and TRAPEZIUM landing sites, a
+     NEXT between each
 
    Every playing screen is an ITINERARY of sites, and runRound()
-   below plays any of them: what differs between the five screens
+   below plays any of them: what differs between the four screens
    is the list of sites each carries, which lives in js/pages.js.
 
    The "<" / ">" nav can cut in at any point, so each screen is
@@ -146,7 +166,7 @@
 
   function grab() {
     [
-      'stage', 'screenCockpit', 'screenDrone', 'screenLearn', 'starfield',
+      'stage', 'screenCockpit', 'screenDrone', 'screenLearn', 'screenLearnQuad', 'starfield',
       'flyDrone', 'flyTrail', 'dash', 'waveCanvas', 'cockpitCaption',
       'launchSlot', 'launchBtn', 'oceanBg', 'blackout', 'scanner',
       'droneHud', 'cam',
@@ -335,7 +355,7 @@
   }
 
   /* ============================================================
-     THE PLAYING SCREENS — the survey, the landing and the rounds
+     THE PLAYING SCREENS — the two surveys and the two landings
 
      One driver for all of them. Every playing screen is one
      continuous shot over one sea, and the lens comes down on it at
@@ -369,9 +389,10 @@
                            to rest in between
 
      The survey (screen 2) is this with the drone's dark-and-scan
-     opening in front of it (`round.intro`); the landing screen opens
-     on the water with two lines said from the air; a round opens
-     straight onto the water. What differs between them otherwise is
+     opening in front of it (`round.intro`); the quadrilateral survey
+     opens straight onto the water; a landing screen opens on the
+     water with two lines said from the air. What differs between
+     them otherwise is
      entirely data -- the sites, the artwork, the measurements, the
      numbers on the islands, the formula -- and all of it lives in
      js/pages.js. Nothing below names a shape.
@@ -618,7 +639,7 @@
           e.topbar.classList.add('is-on');
           return M.wait(560);
         },
-        function () { return narrate(e.topbarText, 'recalledAreas'); },
+        function () { return narrate(e.topbarText, round.recalledKey || 'recalledAreas'); },
         function () { return M.wait(220); },
         function () { return narrate(e.topbarText, 'safeLand'); },
         function () {
@@ -865,12 +886,6 @@
       }
     );
 
-    if (round.kind === 'round') {
-      /* a round has already been told once that these match; what
-         is new is that the three of them are all that is left */
-      steps.push(function () { return narrate(e.topbarText, 'onlyMatching'); });
-    }
-
     steps.push(
       /* --- how much space it needs ---
          the callouts are drawn on as the line lands: they ARE "how
@@ -893,8 +908,6 @@
 
       /* --- planted; plantRound() has already said its piece --- */
       function (id) {
-        e.tally.textContent = T(site.copy.sum);
-        e.tally.classList.add('is-shown');
         return handFooterToAdvance(id, e.caption, e.tally, function () {
           showRoundAdvance(site);
         }, site.onward);
@@ -922,7 +935,7 @@
         return nameGallery(site, id);
       },
       function () { return M.wait(360); },
-      function () { return narrate(e.topbarText, 'recallIntro'); },
+      function () { return narrate(e.topbarText, site.recallKey || 'recallIntro'); },
       function () { return M.wait(200); },
       function () { return narrate(e.topbarText, 'recallGo'); },
       function () { return M.wait(700); },
@@ -1533,10 +1546,6 @@
         pad.classList.add('is-fit');
         SEA.settle(pad);
 
-        e.caption.textContent = T('hudPerfectFit', { area: site.area });
-        e.caption.classList.add('is-shown');
-        e.tally.textContent = T(site.copy.sum);
-
         A.sfx('correct', { volume: 0.6 });
 
         /* a beat after the chime, so the two sounds read as one
@@ -1586,9 +1595,6 @@
 
     pad.classList.add(tight ? 'is-tight' : 'is-loose');
 
-    e.caption.textContent = T('hudNeeds', { area: pad.dataset.area, need: site.area });
-    e.caption.classList.add('is-shown');
-
     /* the verdict is SPOKEN OVER the struggle rather than after it,
        and awaited at the end, so a slow connection delays the retry
        prompt instead of talking over it */
@@ -1610,7 +1616,6 @@
         if (!live(id)) return;
         site.landing = false;
         if (!site.solved) armRound(site);
-        if (e.caption) e.caption.classList.remove('is-shown');
         return narrate(e.topbarText, 'chooseExact');
       });
   }
@@ -1654,28 +1659,41 @@
 
 
   /* ============================================================
-     SCREEN 3 — THE LESSON (js/learn.js)
+     SCREENS 3 AND 6 — THE LESSONS (js/learn.js, js/learn-quad.js)
 
-     The warm-up and the triangle lesson, played on their own board
-     by their own engine. This module only hands it the screen,
-     starts it, and goes on when it reports its last NEXT.
+     The warm-up and the triangle lesson, and then the general
+     quadrilateral and the trapezium's check, each played on its own
+     board by its own engine. This module only hands an engine its
+     screen, starts it, and goes on when it reports its last NEXT.
+     Both engines answer the same calls: init, assets, reset, run,
+     skip, pages, setMuted.
      ============================================================ */
-  function resetLearn() {
-    if (global.GeoLearn) global.GeoLearn.reset();
+  function lessonScreen(node, engine) {
+    return {
+      node:   function () { return node(); },
+      lesson: function () { return global[engine] || null; },
+      reset:  function () { var L = global[engine]; if (L) L.reset(); },
+      run:    function (opts) { return runLesson(global[engine], opts); }
+    };
   }
 
-  function runLearn(opts) {
+  function runLesson(L, opts) {
     W.stop();
     A.duckAmbience(0.12, 900);
 
     return sequence([
       function (id) {
-        if (!global.GeoLearn) return;
-        return global.GeoLearn.run(opts).then(function (done) {
+        if (!L) return;
+        return L.run(opts).then(function (done) {
           if (done && live(id) && canAdvance()) return goTo(current + 1);
         });
       }
     ]);
+  }
+
+  /* every lesson engine there is, for the calls that reach all of them */
+  function lessons() {
+    return [global.GeoLearn, global.GeoLearnQuad].filter(Boolean);
   }
 
 
@@ -1689,7 +1707,7 @@
     { node: function () { return el.screenCockpit; }, reset: resetCockpit, run: runCockpit },
     { node: function () { return el.screenDrone; },   reset: resetSurvey,  run: runSurvey,
       round: function () { return survey; } },
-    { node: function () { return el.screenLearn; },   reset: resetLearn,   run: runLearn }
+    lessonScreen(function () { return el.screenLearn; }, 'GeoLearn')
   ];
 
   /* Screen 2 is a playing screen like the others once js/pages.js
@@ -1711,7 +1729,7 @@
     ]);
   }
 
-  /* The landing screen and the rounds are built from js/pages.js at
+  /* The landing screen and the two quadrilateral screens are built from js/pages.js at
      boot and appended here, so the nav, the veil, the NEXT button
      and goTo() pick them up with no special case. */
   function addRoundScreens() {
@@ -1735,6 +1753,12 @@
       });
       wireSites(round);
       round.el.advance.addEventListener('click', function () { onAdvance(round); });
+
+      /* the quadrilateral survey's gallery hands over to the second
+         lesson, and the quadrilateral landing follows it */
+      if (round.lesson === 'quad' && el.screenLearnQuad) {
+        SCREENS.push(lessonScreen(function () { return el.screenLearnQuad; }, 'GeoLearnQuad'));
+      }
     });
   }
 

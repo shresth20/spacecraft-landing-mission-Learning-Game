@@ -19,12 +19,16 @@
    The screens, in the order the mission plays them:
 
      2  the survey     square > rectangle > triangle shape sites,
-                       then the gallery (then the learning screen,
+                       then the gallery (then the first lesson,
                        which is not built here -- see js/learn.js)
      4  the landing    square > rectangle > triangle landing sites
-     5-7  a round each for the parallelogram, the trapezium and
-                       the rhombus: one shape site and one landing
-                       site, as the survey used to be played
+     5  the quadrilateral survey
+                       parallelogram > rhombus > trapezium shape
+                       sites, then their gallery (then the second
+                       lesson -- js/learn-quad.js)
+     7  the quadrilateral landing
+                       parallelogram > rhombus > trapezium landing
+                       sites
 
    This file is the DATA and the MARKUP. The flow that plays it is
    runRound() in js/script.js, which is one function for every
@@ -383,8 +387,7 @@
                   parallelogram, and a rhombus IS a parallelogram,
                   so none of those can ever be a decoy for those
                   questions. A trapezium is read the way the mission
-                  draws it -- exactly one pair of parallel sides.
-       sayKey     the round screens' own line naming the shape    */
+                  draws it -- exactly one pair of parallel sides. */
   var SIZES_A = [1.3, 0.6, 1.0];
 
   var SHAPES = {
@@ -416,7 +419,6 @@
     parallelogram: {
       area: 42,                        /* 7 x 6 */
       areaKey: 'calcArea',
-      sayKey: 'sayParallelogram',
       copy: { formula: 'hudFormulaParallelogram', tally: 'hudTallyParallelogram', sum: 'hudSumParallelogram' },
       row: [63, 30, 42],
       decoyPool: ['triangle', 'trapezium']       /* squares, rectangles and rhombi ARE parallelograms */
@@ -425,7 +427,6 @@
     trapezium: {
       area: 45,                        /* 1/2 x (5 + 10) x 6 */
       areaKey: 'findArea',
-      sayKey: 'sayTrapezium',
       copy: { formula: 'hudFormulaTrapezium', tally: 'hudTallyTrapezium', sum: 'hudSumTrapezium' },
       row: [45, 30, 90],               /* 90 is the half forgotten */
       decoyPool: ['triangle', 'square', 'rectangle', 'parallelogram', 'rhombus']
@@ -434,7 +435,6 @@
     rhombus: {
       area: 21,                        /* 1/2 x 6 x 7 */
       areaKey: 'calcArea',
-      sayKey: 'sayRhombus',
       /* this hull fills only 21% of its canvas, so the box that
          matches a 21-unit island is the tallest on any screen — it
          is hung 3% lower than the others, in css/rounds.css, to
@@ -466,8 +466,12 @@
 
      The survey is screen 2, with the drone's dark-and-scan opening
      in front of it (`intro`), and its screen is written in
-     index.html; the landing screen and the rounds are built by
-     sectionHTML() at boot.                                        */
+     index.html; the landing screen and the two quadrilateral
+     screens are built by sectionHTML() at boot.
+
+     What a screen says is data too: the gallery's hand-over line
+     (`recallKey`), and the line a landing screen picks the mission
+     up again with after a lesson (`recalledKey`).                 */
 
   /* the four stations of the diamond */
   var AT = {
@@ -484,12 +488,14 @@
       { key: 'sq',  kind: 'shape',   shape: 'square',    at: AT.nw, selectKey: 'selectSquare',    matchKey: 'matchSquare' },
       { key: 'rc',  kind: 'shape',   shape: 'rectangle', at: AT.e,  selectKey: 'selectRectangle', matchKey: 'matchRectangle' },
       { key: 'tr',  kind: 'shape',   shape: 'triangle',  at: AT.sw, selectKey: 'selectTriangle',  matchKey: 'matchTriangle' },
-      { key: 'gal', kind: 'gallery', shapes: ['square', 'rectangle', 'triangle'], at: AT.ne }
+      { key: 'gal', kind: 'gallery', shapes: ['square', 'rectangle', 'triangle'], at: AT.ne,
+        recallKey: 'recallIntro' }
     ]
   };
 
   var LANDING = {
     kind: 'landing',
+    recalledKey: 'recalledAreas',
     sites: [
       { key: 'sq', kind: 'landing', shape: 'square',    at: AT.nw },
       { key: 'rc', kind: 'landing', shape: 'rectangle', at: AT.e },
@@ -497,21 +503,33 @@
     ]
   };
 
-  /* the rounds that follow the landing: the three shapes the lesson
-     has not covered yet, each asked the way the survey used to ask
-     the triangle -- a shape site, then a landing site */
-  var ROUND_SHAPES = ['parallelogram', 'trapezium', 'rhombus'];
+  /* The quadrilaterals: the same two screens again, for the three
+     shapes the first lesson did not cover. The survey has no dark to
+     scan -- the drone is already over the sea -- so it opens on the
+     water at survey height, as the landing screen does, and its
+     gallery hands over to the second lesson (`lesson`). */
+  var SURVEY_QUAD = {
+    kind: 'survey',
+    gallery: 'secSurveyQuads',
+    lesson: 'quad',
+    sites: [
+      { key: 'pa',  kind: 'shape',   shape: 'parallelogram', at: AT.nw, selectKey: 'selectParallelogram', matchKey: 'matchParallelogram' },
+      { key: 'rh',  kind: 'shape',   shape: 'rhombus',       at: AT.e,  selectKey: 'selectRhombus',       matchKey: 'matchRhombus' },
+      { key: 'tz',  kind: 'shape',   shape: 'trapezium',     at: AT.sw, selectKey: 'selectTrapezium',     matchKey: 'matchTrapezium' },
+      { key: 'gal', kind: 'gallery', shapes: ['parallelogram', 'rhombus', 'trapezium'], at: AT.ne,
+        recallKey: 'recallIntroQuad' }
+    ]
+  };
 
-  function roundOf(shape) {
-    return {
-      kind: 'round',
-      shape: shape,
-      sites: [
-        { key: 'a', kind: 'shape',   shape: shape, at: AT.nw, selectKey: SHAPES[shape].sayKey, matchKey: 'shapeMatch' },
-        { key: 'b', kind: 'landing', shape: shape, at: AT.e }
-      ]
-    };
-  }
+  var LANDING_QUAD = {
+    kind: 'landing',
+    recalledKey: 'recalledQuad',
+    sites: [
+      { key: 'pa', kind: 'landing', shape: 'parallelogram', at: AT.nw },
+      { key: 'rh', kind: 'landing', shape: 'rhombus',       at: AT.e },
+      { key: 'tz', kind: 'landing', shape: 'trapezium',     at: AT.sw }
+    ]
+  };
 
 
   /* ---------------------------------------------------------- sizing
@@ -1090,6 +1108,7 @@
       decoyPool: fig ? fig.decoyPool : [],
       selectKey: spec.selectKey || null,
       matchKey: spec.matchKey || null,
+      recallKey: spec.recallKey || null,
       geo: (land && craft) ? {
         shipCX: craft.cx, shipCY: craft.cy,
         padCX: land.cx, padCY: land.cy,
@@ -1225,13 +1244,14 @@
      Called once, at load, from boot() in js/script.js — so the
      islands and the craft on every built screen are in
      `document.images` before the start gate counts what it has to
-     wait for. Returns the landing screen and then the three rounds,
-     each wired (wireScreen): there are no ids on these screens; the
-     flow is handed the screen it is playing anyway. */
+     wait for. Returns the landing screen, the quadrilateral survey
+     and the quadrilateral landing, each wired (wireScreen): there
+     are no ids on these screens; the flow is handed the screen it
+     is playing anyway. */
   function build(stage, before) {
     if (!stage) return [];
 
-    var screens = [LANDING].concat(ROUND_SHAPES.map(roundOf));
+    var screens = [LANDING, SURVEY_QUAD, LANDING_QUAD];
 
     return screens.map(function (round) {
       var host = doc.createElement('div');
