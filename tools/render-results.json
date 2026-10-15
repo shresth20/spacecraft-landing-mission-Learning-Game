@@ -1,0 +1,1662 @@
+{
+  "date": "2026-10-14",
+  "baselineCommit": "5cc0074",
+  "status": "Four reproduced defects addressed. Edge reveal tile-memory exhaustion was eliminated in the matched test, and the user confirms complete island/spacecraft rendering and smooth motion in the affected Edge window. The cross-browser 60 FPS target remains unmet.",
+  "confirmedCauses": [
+    {
+      "files": [
+        "css/animation.css",
+        "css/style.css"
+      ],
+      "cause": "The island rise combined transform/opacity with a pixel-moving filter in one CSS animation. Edge reported compositor failure reason 4096 for the rise. Promoted pad images accumulated up to 29 slightly different raster scales, exhausting the 512 MiB tile budget during the initial reveal.",
+      "change": "Separate zoneRise and padRise motion from zoneFocus and padFocus filters on the same elements. Both parts retain identical start times, duration, easing, property keyframe offsets, values and forwards fill. No assets, resolutions, effects, camera paths or gameplay were changed.",
+      "reproduction": "Real Edge 155, Apple M5/Metal, viewport 1960x1100, emulated DPR 2. Start mission, jump to section 1, wait for blackout.is-clear, then record the scan-to-island reveal.",
+      "firstUnseededReproduction": {
+        "dataLossOccurred": null,
+        "renderAttempts": 900,
+        "attemptSpanSeconds": 14.983,
+        "attemptsWithMissingTiles": 55,
+        "maxMissingTilesPerAttempt": 16,
+        "missingTileTimesSecondsFromFirstAttempt": [
+          5.6,
+          5.799,
+          5.817,
+          5.833,
+          5.85,
+          5.867,
+          5.883,
+          5.917,
+          5.933,
+          5.95,
+          5.967,
+          5.983,
+          6.033,
+          6.05,
+          6.067,
+          6.083,
+          6.099,
+          6.117,
+          6.133,
+          6.15,
+          6.167,
+          6.183,
+          6.2,
+          6.216,
+          6.233,
+          6.249,
+          6.267,
+          6.283,
+          6.299,
+          6.316,
+          6.333,
+          6.35,
+          6.367,
+          6.383,
+          6.399,
+          6.416,
+          6.433,
+          6.45,
+          6.466,
+          6.483,
+          6.499,
+          6.516,
+          6.534,
+          6.55,
+          6.567,
+          6.583,
+          6.6,
+          6.633,
+          6.667,
+          6.683,
+          6.7,
+          6.716,
+          6.733,
+          6.967,
+          10.549
+        ],
+        "insufficientMemoryAssignments": 104,
+        "incompleteRasterSchedulingAssignments": 152,
+        "pipelineReporterEntries": {
+          "states": {
+            "STATE_PRESENTED_ALL": 855,
+            "STATE_PRESENTED_PARTIAL": 855,
+            "STATE_DROPPED": 32,
+            "STATE_NO_UPDATE_DESIRED": 58
+          },
+          "hasMissingContent": 368,
+          "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+        }
+      },
+      "matchedSeed42TwelveSecondTrace": {
+        "before": {
+          "dataLossOccurred": false,
+          "renderAttempts": 718,
+          "attemptSpanSeconds": 12.0,
+          "attemptsWithMissingTiles": 11,
+          "maxMissingTilesPerAttempt": 16,
+          "missingTileTimesSecondsFromFirstAttempt": [
+            5.367,
+            5.4,
+            5.467,
+            5.5,
+            5.517,
+            5.7,
+            5.717,
+            5.733,
+            5.75,
+            5.767,
+            10.517
+          ],
+          "insufficientMemoryAssignments": 14,
+          "incompleteRasterSchedulingAssignments": 35,
+          "pipelineReporterEntries": {
+            "states": {
+              "STATE_PRESENTED_ALL": 708,
+              "STATE_PRESENTED_PARTIAL": 708,
+              "STATE_DROPPED": 17,
+              "STATE_NO_UPDATE_DESIRED": 6
+            },
+            "hasMissingContent": 350,
+            "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+          }
+        },
+        "after": {
+          "dataLossOccurred": false,
+          "renderAttempts": 714,
+          "attemptSpanSeconds": 11.983,
+          "attemptsWithMissingTiles": 1,
+          "maxMissingTilesPerAttempt": 1,
+          "missingTileTimesSecondsFromFirstAttempt": [
+            10.516
+          ],
+          "insufficientMemoryAssignments": 0,
+          "incompleteRasterSchedulingAssignments": 16,
+          "pipelineReporterEntries": {
+            "states": {
+              "STATE_PRESENTED_ALL": 713,
+              "STATE_PRESENTED_PARTIAL": 713,
+              "STATE_DROPPED": 8
+            },
+            "hasMissingContent": 440,
+            "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+          }
+        }
+      },
+      "textureSnapshots": {
+        "before": {
+          "dataLossOccurred": false,
+          "renderAttempts": 7,
+          "attemptSpanSeconds": 0.1,
+          "attemptsWithMissingTiles": 0,
+          "maxMissingTilesPerAttempt": 0,
+          "missingTileTimesSecondsFromFirstAttempt": [],
+          "insufficientMemoryAssignments": 0,
+          "incompleteRasterSchedulingAssignments": 0,
+          "sampledTextures": {
+            "snapshotCount": 6,
+            "snapshotSpanSeconds": 0.082,
+            "activeTileMiB": 436.13,
+            "padImageLayerMiB": 212.06,
+            "maxTilingsPerPadImage": 29,
+            "tileBudgetMiB": 512.0
+          },
+          "pipelineReporterEntries": {
+            "states": {
+              "STATE_PRESENTED_ALL": 5,
+              "STATE_PRESENTED_PARTIAL": 5
+            },
+            "hasMissingContent": 0,
+            "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+          }
+        },
+        "after": {
+          "dataLossOccurred": false,
+          "renderAttempts": 6,
+          "attemptSpanSeconds": 0.088,
+          "attemptsWithMissingTiles": 0,
+          "maxMissingTilesPerAttempt": 0,
+          "missingTileTimesSecondsFromFirstAttempt": [],
+          "insufficientMemoryAssignments": 0,
+          "incompleteRasterSchedulingAssignments": 0,
+          "sampledTextures": {
+            "snapshotCount": 6,
+            "snapshotSpanSeconds": 0.087,
+            "activeTileMiB": 234.62,
+            "padImageLayerMiB": 8.98,
+            "maxTilingsPerPadImage": 1,
+            "tileBudgetMiB": 512.0
+          },
+          "pipelineReporterEntries": {
+            "states": {
+              "STATE_PRESENTED_ALL": 6,
+              "STATE_PRESENTED_PARTIAL": 6
+            },
+            "hasMissingContent": 12,
+            "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+          }
+        },
+        "caveat": "Active-tree tile/layer storage sampled 5.8 seconds after blackout clear, not total GPU VRAM or a full-reveal peak. Both short snapshot traces and both normal 12-second traces completed without data loss. Earlier overflowing debug traces were excluded from this comparison."
+      },
+      "preservationChecks": {
+        "edge": {
+          "samplesPerAnimation": 101,
+          "identical": true
+        },
+        "chrome": {
+          "samplesPerAnimation": 101,
+          "identical": true
+        },
+        "webkit": {
+          "samplesPerAnimation": 101,
+          "identical": true
+        },
+        "firefox": {
+          "samplesPerAnimation": 101,
+          "identical": true
+        }
+      },
+      "interpretationSources": [
+        "https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/core/animation/compositor_animations.h",
+        "https://chromium.googlesource.com/chromium/src/+/main/cc/layers/picture_layer_impl.cc",
+        "https://chromium.googlesource.com/chromium/src/+/main/cc/trees/layer_tree_host_impl.cc"
+      ],
+      "limitations": "One attempted frame still reported a missing tile near the end of the first descent; no allocation failure accompanied it. rAF FPS stayed about 60 before and after, so the demonstrated improvement is tile residency, not a statistically established FPS gain."
+    },
+    {
+      "file": "js/animation.js",
+      "cause": "A new camFly did not invalidate the cancelled flight, and one global generation let an unrelated screen reset suppress camera cleanup.",
+      "change": "Advance a per-screen WeakMap generation on every camera command. Only its current flight may park the camera. Give every plate one shared document-timeline start time.",
+      "before": {
+        "interrupted": {
+          "s": 1,
+          "x": 50,
+          "y": 50
+        },
+        "activeAfterOtherReset": [
+          {
+            "id": "geo-cam",
+            "state": "finished"
+          }
+        ],
+        "errors": []
+      },
+      "after": {
+        "interrupted": {
+          "s": 0.7,
+          "x": 90,
+          "y": 65
+        },
+        "plateStarts": [
+          273.33000000000004,
+          273.33000000000004
+        ],
+        "activeAfterOtherReset": [],
+        "errors": []
+      },
+      "scope": "Reproduced with real browser camera API calls; not proven to be the cause of the supplied rectangular artifact."
+    },
+    {
+      "file": "js/learn-quad.js",
+      "cause": "The quadrilateral sprite loop continued measuring and writing fifteen sprite nodes while its screen was hidden.",
+      "change": "Return before measuring or advancing sprites unless the lesson is active or leaving; park the sprite clock while hidden.",
+      "hiddenStyleWritesDuringMatchedEdgeZoom": {
+        "before": 3645,
+        "after": 0
+      },
+      "activeLessonSpriteWritesObservedAfterFix": 780
+    },
+    {
+      "file": "js/water.js",
+      "cause": "Viewport-sized water pattern canvases accumulated for every previous size, and the scratch canvas survived leaving the sea.",
+      "change": "Clear obsolete canvas backing stores on viewport/DPR changes and release pattern/scratch canvases when the sea render loop stops.",
+      "beforeResizeSequence": [
+        {
+          "tiles": 8,
+          "tilePixels": 1138969,
+          "scratchPixels": 2073600
+        },
+        {
+          "tiles": 16,
+          "tilePixels": 2374362,
+          "scratchPixels": 2248000
+        },
+        {
+          "tiles": 24,
+          "tilePixels": 3708826,
+          "scratchPixels": 2429440
+        },
+        {
+          "tiles": 32,
+          "tilePixels": 5146169,
+          "scratchPixels": 2617920
+        },
+        {
+          "tiles": 40,
+          "tilePixels": 6691565,
+          "scratchPixels": 2813440
+        },
+        {
+          "tiles": 48,
+          "tilePixels": 8347282,
+          "scratchPixels": 3016000
+        },
+        {
+          "tiles": 56,
+          "tilePixels": 10118050,
+          "scratchPixels": 3225600
+        },
+        {
+          "tiles": 64,
+          "tilePixels": 12007736,
+          "scratchPixels": 3442240
+        },
+        {
+          "tiles": 72,
+          "tilePixels": 14021712,
+          "scratchPixels": 3665920
+        },
+        {
+          "tiles": 80,
+          "tilePixels": 16160840,
+          "scratchPixels": 3896640
+        },
+        {
+          "tiles": 88,
+          "tilePixels": 18431007,
+          "scratchPixels": 4134400
+        },
+        {
+          "tiles": 96,
+          "tilePixels": 20834406,
+          "scratchPixels": 4379200
+        },
+        {
+          "tiles": 104,
+          "tilePixels": 23378136,
+          "scratchPixels": 4631040
+        },
+        {
+          "tiles": 104,
+          "tilePixels": 23378136,
+          "scratchPixels": 2073600
+        },
+        {
+          "tiles": 104,
+          "tilePixels": 23378136,
+          "scratchPixels": 2073600
+        }
+      ],
+      "afterResizeSequence": [
+        {
+          "tiles": 8,
+          "tilePixels": 1138969,
+          "scratchPixels": 2073600
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 1235393,
+          "scratchPixels": 2248000
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 1334464,
+          "scratchPixels": 2429440
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 1437343,
+          "scratchPixels": 2617920
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 1545396,
+          "scratchPixels": 2813440
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 1655717,
+          "scratchPixels": 3016000
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 1770768,
+          "scratchPixels": 3225600
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 1889686,
+          "scratchPixels": 3442240
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 2013976,
+          "scratchPixels": 3665920
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 2139128,
+          "scratchPixels": 3896640
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 2270167,
+          "scratchPixels": 4134400
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 2403399,
+          "scratchPixels": 4379200
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 2543730,
+          "scratchPixels": 4631040
+        },
+        {
+          "tiles": 8,
+          "tilePixels": 1138969,
+          "scratchPixels": 2073600
+        },
+        {
+          "tiles": 0,
+          "tilePixels": 0,
+          "scratchPixels": 0
+        }
+      ],
+      "pixelIdenticalAfterResizeAwayAndBack": true,
+      "restored960x540TileStorageMiB": {
+        "before": 89.18,
+        "after": 4.34
+      },
+      "memoryNote": "RGBA width*height*4 estimates retained pixel storage, not measured GPU VRAM or process RSS."
+    }
+  ],
+  "method": {
+    "hardware": "Apple M5; Edge SystemInfo reported ANGLE Metal with GPU compositing and rasterization enabled.",
+    "harness": "tools/render-probe.cjs; fresh isolated browser contexts and a local static server; no access to personal browser profiles.",
+    "zoomScenario": "Start mission, section 10, await the actual picking task, click its three parallelograms, record the climb/pan/descent to rhombus.",
+    "baseline": "Original animation.js, learn-quad.js and water.js from 5cc0074, served over identical current assets with --baseline-dir.",
+    "profiling": "Chromium DevTools Protocol Performance, Tracing (devtools.timeline,cc,gpu,viz), LayerTree and SystemInfo; rAF timestamps, DOM counters after GC, MutationObserver and presented-frame screencasts.",
+    "fpsMeaning": "rAF delivery rate, not an independent hardware display-present or GPU-utilization measurement. CalculateRenderPasses missing-tile events count draw attempts; animated missing tiles can cause an aborted draw rather than a visibly blank frame.",
+    "timingCaveat": "Single-run comparisons on a shared machine. Only seeded reveal comparisons use matching scenery. Small FPS differences are not established improvements. Screencasts and detailed debug snapshots are diagnostic and are excluded from FPS improvement claims.",
+    "webKitFirefoxCaveat": "Playwright WebKit 26.6 and Firefox 156 builds, not the user's installed Safari/Firefox profile. Their GPU backend was not independently verified. Cross-browser results are diagnostic.",
+    "rawEvidenceDirectory": "/tmp/spacecraft-render",
+    "revealBaseline": "Original css/style.css and css/animation.css from 5cc0074 served over the otherwise fixed game. Seed 42 gives matching scenery; 12-second normal compositor traces cover the full reveal.",
+    "rawTraceLimit": "Detailed cc.debug traces can overflow. traceStatus.dataLossOccurred is retained; truncated snapshots are never used to claim absence of failures throughout a run."
+  },
+  "samples": [
+    {
+      "evidence": "edge-transit-before.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1960,
+        1100
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.02,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "p99": 33.3,
+        "max": 33.4
+      },
+      "hiddenStyleWrites": 3645,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": null,
+      "cdpDurationSeconds": {
+        "Timestamp": 12.178,
+        "ScriptDuration": 0.3858,
+        "RecalcStyleDuration": 1.2323,
+        "LayoutDuration": 0.0575,
+        "TaskDuration": 4.8387
+      },
+      "longAnimationFrames": 0,
+      "trace": {
+        "Paint": {
+          "events": 13845,
+          "total_ms": 518.21
+        },
+        "RasterTask": {
+          "events": 8807,
+          "total_ms": 41.56
+        },
+        "UpdateLayoutTree": {
+          "events": 1151,
+          "total_ms": 1228.08
+        },
+        "Layerize": {
+          "events": 717,
+          "total_ms": 616.03
+        },
+        "Layout": {
+          "events": 564,
+          "total_ms": 54.16
+        },
+        "renderPasses": 717,
+        "missingTileFrames": 0
+      }
+    },
+    {
+      "evidence": "edge-final-transit.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1960,
+        1100
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.59,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "p99": 16.8,
+        "max": 33.4
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--label",
+        "edge-final-transit",
+        "--engine",
+        "msedge",
+        "--width",
+        "1960",
+        "--height",
+        "1100",
+        "--dpr",
+        "2",
+        "--mode",
+        "transit",
+        "--seconds",
+        "12",
+        "--trace",
+        "--categories",
+        "devtools.timeline,cc,gpu,viz",
+        "--no-shot"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 12.1653,
+        "ScriptDuration": 0.3741,
+        "RecalcStyleDuration": 1.1764,
+        "LayoutDuration": 0.0628,
+        "TaskDuration": 5.0452
+      },
+      "longAnimationFrames": 0,
+      "trace": {
+        "Paint": {
+          "events": 13958,
+          "total_ms": 552.44
+        },
+        "RasterTask": {
+          "events": 9098,
+          "total_ms": 56.94
+        },
+        "UpdateLayoutTree": {
+          "events": 1154,
+          "total_ms": 1172.63
+        },
+        "Layerize": {
+          "events": 723,
+          "total_ms": 688.48
+        },
+        "Layout": {
+          "events": 591,
+          "total_ms": 58.96
+        },
+        "renderPasses": 724,
+        "missingTileFrames": 0
+      }
+    },
+    {
+      "evidence": "edge-final-navigation.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1512,
+        850
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.82,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "p99": 16.8,
+        "max": 149.9
+      },
+      "hiddenStyleWrites": 4706,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--label",
+        "edge-final-navigation",
+        "--engine",
+        "msedge",
+        "--width",
+        "1512",
+        "--height",
+        "850",
+        "--dpr",
+        "2",
+        "--mode",
+        "navigation",
+        "--cycles",
+        "8",
+        "--seconds",
+        "2",
+        "--sea-resources",
+        "--no-shot"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 102.2387,
+        "ScriptDuration": 2.7552,
+        "RecalcStyleDuration": 4.7698,
+        "LayoutDuration": 0.4508,
+        "TaskDuration": 25.2011
+      },
+      "longAnimationFrames": 3
+    },
+    {
+      "evidence": "edge-scan-reveal.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1960,
+        1100
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 60.0,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 16.8
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--label",
+        "edge-scan-reveal",
+        "--engine",
+        "msedge",
+        "--width",
+        "1960",
+        "--height",
+        "1100",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "15",
+        "--trace",
+        "--categories",
+        "devtools.timeline,cc,gpu,viz"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 15.0362,
+        "ScriptDuration": 0.4346,
+        "RecalcStyleDuration": 1.1848,
+        "LayoutDuration": 0.0463,
+        "TaskDuration": 5.3581
+      },
+      "longAnimationFrames": 0,
+      "trace": {
+        "dataLossOccurred": null,
+        "renderAttempts": 900,
+        "attemptSpanSeconds": 14.983,
+        "attemptsWithMissingTiles": 55,
+        "maxMissingTilesPerAttempt": 16,
+        "missingTileTimesSecondsFromFirstAttempt": [
+          5.6,
+          5.799,
+          5.817,
+          5.833,
+          5.85,
+          5.867,
+          5.883,
+          5.917,
+          5.933,
+          5.95,
+          5.967,
+          5.983,
+          6.033,
+          6.05,
+          6.067,
+          6.083,
+          6.099,
+          6.117,
+          6.133,
+          6.15,
+          6.167,
+          6.183,
+          6.2,
+          6.216,
+          6.233,
+          6.249,
+          6.267,
+          6.283,
+          6.299,
+          6.316,
+          6.333,
+          6.35,
+          6.367,
+          6.383,
+          6.399,
+          6.416,
+          6.433,
+          6.45,
+          6.466,
+          6.483,
+          6.499,
+          6.516,
+          6.534,
+          6.55,
+          6.567,
+          6.583,
+          6.6,
+          6.633,
+          6.667,
+          6.683,
+          6.7,
+          6.716,
+          6.733,
+          6.967,
+          10.549
+        ],
+        "insufficientMemoryAssignments": 104,
+        "incompleteRasterSchedulingAssignments": 152,
+        "pipelineReporterEntries": {
+          "states": {
+            "STATE_PRESENTED_ALL": 855,
+            "STATE_PRESENTED_PARTIAL": 855,
+            "STATE_DROPPED": 32,
+            "STATE_NO_UPDATE_DESIRED": 58
+          },
+          "hasMissingContent": 368,
+          "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+        }
+      }
+    },
+    {
+      "evidence": "reveal-seeded-control.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1960,
+        1100
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.75,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "p99": 16.8,
+        "max": 33.4
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--label",
+        "reveal-seeded-control",
+        "--engine",
+        "msedge",
+        "--width",
+        "1960",
+        "--height",
+        "1100",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "12",
+        "--seed",
+        "42",
+        "--trace",
+        "--categories",
+        "devtools.timeline,cc,gpu,viz",
+        "--no-shot"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 12.0439,
+        "ScriptDuration": 0.3358,
+        "RecalcStyleDuration": 0.8213,
+        "LayoutDuration": 0.0421,
+        "TaskDuration": 4.0814
+      },
+      "longAnimationFrames": 0,
+      "trace": {
+        "dataLossOccurred": false,
+        "renderAttempts": 718,
+        "attemptSpanSeconds": 12.0,
+        "attemptsWithMissingTiles": 11,
+        "maxMissingTilesPerAttempt": 16,
+        "missingTileTimesSecondsFromFirstAttempt": [
+          5.367,
+          5.4,
+          5.467,
+          5.5,
+          5.517,
+          5.7,
+          5.717,
+          5.733,
+          5.75,
+          5.767,
+          10.517
+        ],
+        "insufficientMemoryAssignments": 14,
+        "incompleteRasterSchedulingAssignments": 35,
+        "pipelineReporterEntries": {
+          "states": {
+            "STATE_PRESENTED_ALL": 708,
+            "STATE_PRESENTED_PARTIAL": 708,
+            "STATE_DROPPED": 17,
+            "STATE_NO_UPDATE_DESIRED": 6
+          },
+          "hasMissingContent": 350,
+          "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+        }
+      }
+    },
+    {
+      "evidence": "reveal-split-motion.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1960,
+        1100
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.5,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "p99": 16.8,
+        "max": 33.4
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--label",
+        "reveal-split-motion",
+        "--engine",
+        "msedge",
+        "--width",
+        "1960",
+        "--height",
+        "1100",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "12",
+        "--seed",
+        "42",
+        "--trace",
+        "--categories",
+        "devtools.timeline,cc,gpu,viz",
+        "--no-shot"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 12.0335,
+        "ScriptDuration": 0.3408,
+        "RecalcStyleDuration": 0.8072,
+        "LayoutDuration": 0.0416,
+        "TaskDuration": 4.0718
+      },
+      "longAnimationFrames": 0,
+      "trace": {
+        "dataLossOccurred": false,
+        "renderAttempts": 714,
+        "attemptSpanSeconds": 11.983,
+        "attemptsWithMissingTiles": 1,
+        "maxMissingTilesPerAttempt": 1,
+        "missingTileTimesSecondsFromFirstAttempt": [
+          10.516
+        ],
+        "insufficientMemoryAssignments": 0,
+        "incompleteRasterSchedulingAssignments": 16,
+        "pipelineReporterEntries": {
+          "states": {
+            "STATE_PRESENTED_ALL": 713,
+            "STATE_PRESENTED_PARTIAL": 713,
+            "STATE_DROPPED": 8
+          },
+          "hasMissingContent": 440,
+          "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+        }
+      }
+    },
+    {
+      "evidence": "navigation-final-css.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1512,
+        850
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.96,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 33.4
+      },
+      "hiddenStyleWrites": 1169,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--engine",
+        "msedge",
+        "--seed",
+        "42",
+        "--label",
+        "navigation-final-css",
+        "--mode",
+        "navigation",
+        "--cycles",
+        "2",
+        "--seconds",
+        "1",
+        "--no-shot"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 26.0715,
+        "ScriptDuration": 0.6857,
+        "RecalcStyleDuration": 1.3082,
+        "LayoutDuration": 0.1153,
+        "TaskDuration": 6.5111
+      },
+      "longAnimationFrames": 0
+    },
+    {
+      "evidence": "reveal-fixed-visible.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1260,
+        700
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.71,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 17.7,
+        "p99": 17.7,
+        "max": 34.3
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--label",
+        "reveal-fixed-visible",
+        "--engine",
+        "msedge",
+        "--headed",
+        "--width",
+        "1260",
+        "--height",
+        "700",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "14",
+        "--seed",
+        "42",
+        "--filmstrip"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 14.0025,
+        "ScriptDuration": 0.3776,
+        "RecalcStyleDuration": 1.0195,
+        "LayoutDuration": 0.0217,
+        "TaskDuration": 4.5532
+      },
+      "longAnimationFrames": 0
+    },
+    {
+      "evidence": "edge-final-landing-verified.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1260,
+        700
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.75,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 17.7,
+        "p99": 17.7,
+        "max": 133.4
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--seed",
+        "42",
+        "--label",
+        "edge-final-landing-verified",
+        "--engine",
+        "msedge",
+        "--headed",
+        "--width",
+        "1260",
+        "--height",
+        "700",
+        "--dpr",
+        "2",
+        "--mode",
+        "landing",
+        "--section",
+        "7",
+        "--land",
+        "36",
+        "--seconds",
+        "12",
+        "--filmstrip"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 27.9054,
+        "ScriptDuration": 0.6515,
+        "RecalcStyleDuration": 1.6877,
+        "LayoutDuration": 0.0069,
+        "TaskDuration": 7.5341
+      },
+      "longAnimationFrames": 1
+    },
+    {
+      "evidence": "edge-final-reveal.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1960,
+        1100
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.54,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "p99": 16.8,
+        "max": 33.4
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--seed",
+        "42",
+        "--label",
+        "edge-final-reveal",
+        "--engine",
+        "msedge",
+        "--width",
+        "1960",
+        "--height",
+        "1100",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "15",
+        "--trace",
+        "--categories",
+        "devtools.timeline,cc,gpu,viz",
+        "--no-shot"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 15.0338,
+        "ScriptDuration": 0.4081,
+        "RecalcStyleDuration": 1.0721,
+        "LayoutDuration": 0.0383,
+        "TaskDuration": 5.0416
+      },
+      "longAnimationFrames": 0,
+      "trace": {
+        "dataLossOccurred": false,
+        "renderAttempts": 893,
+        "attemptSpanSeconds": 14.984,
+        "attemptsWithMissingTiles": 1,
+        "maxMissingTilesPerAttempt": 1,
+        "missingTileTimesSecondsFromFirstAttempt": [
+          10.517
+        ],
+        "insufficientMemoryAssignments": 0,
+        "incompleteRasterSchedulingAssignments": 17,
+        "pipelineReporterEntries": {
+          "states": {
+            "STATE_PRESENTED_ALL": 892,
+            "STATE_PRESENTED_PARTIAL": 892,
+            "STATE_DROPPED": 9
+          },
+          "hasMissingContent": 438,
+          "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+        }
+      }
+    },
+    {
+      "evidence": "chrome-final-reveal.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "cssViewport": [
+        1512,
+        850
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.84,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 33.4
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--seed",
+        "42",
+        "--label",
+        "chrome-final-reveal",
+        "--engine",
+        "chrome",
+        "--width",
+        "1512",
+        "--height",
+        "850",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "12",
+        "--trace",
+        "--categories",
+        "devtools.timeline,cc,gpu,viz",
+        "--no-shot"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 12.0338,
+        "ScriptDuration": 0.3213,
+        "RecalcStyleDuration": 0.8108,
+        "LayoutDuration": 0.0385,
+        "TaskDuration": 3.9505
+      },
+      "longAnimationFrames": 0,
+      "trace": {
+        "dataLossOccurred": false,
+        "renderAttempts": 718,
+        "attemptSpanSeconds": 11.983,
+        "attemptsWithMissingTiles": 2,
+        "maxMissingTilesPerAttempt": 1,
+        "missingTileTimesSecondsFromFirstAttempt": [
+          3.633,
+          10.616
+        ],
+        "insufficientMemoryAssignments": 0,
+        "incompleteRasterSchedulingAssignments": 15,
+        "pipelineReporterEntries": {
+          "states": {
+            "STATE_PRESENTED_ALL": 716,
+            "STATE_PRESENTED_PARTIAL": 716,
+            "STATE_DROPPED": 6
+          },
+          "hasMissingContent": 930,
+          "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+        }
+      }
+    },
+    {
+      "evidence": "edge-portrait-reveal.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        390,
+        844
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 60.0,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 16.8
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--seed",
+        "42",
+        "--label",
+        "edge-portrait-reveal",
+        "--engine",
+        "msedge",
+        "--width",
+        "390",
+        "--height",
+        "844",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "12"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 12.01,
+        "ScriptDuration": 0.2923,
+        "RecalcStyleDuration": 0.8386,
+        "LayoutDuration": 0.0201,
+        "TaskDuration": 3.7745
+      },
+      "longAnimationFrames": 0
+    },
+    {
+      "evidence": "edge-final-tour.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "cssViewport": [
+        1960,
+        1100
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 59.52,
+      "frameIntervalMs": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "p99": 16.8,
+        "max": 33.4
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--seed",
+        "42",
+        "--label",
+        "edge-final-tour",
+        "--engine",
+        "msedge",
+        "--width",
+        "1960",
+        "--height",
+        "1100",
+        "--dpr",
+        "2",
+        "--mode",
+        "tour",
+        "--section",
+        "1",
+        "--seconds",
+        "3",
+        "--trace",
+        "--categories",
+        "devtools.timeline,cc,gpu,viz",
+        "--no-shot"
+      ],
+      "cdpDurationSeconds": {
+        "Timestamp": 27.0641,
+        "ScriptDuration": 0.7905,
+        "RecalcStyleDuration": 2.2526,
+        "LayoutDuration": 0.1291,
+        "TaskDuration": 10.1452
+      },
+      "longAnimationFrames": 0,
+      "trace": {
+        "dataLossOccurred": false,
+        "renderAttempts": 1609,
+        "attemptSpanSeconds": 27.016,
+        "attemptsWithMissingTiles": 0,
+        "maxMissingTilesPerAttempt": 0,
+        "missingTileTimesSecondsFromFirstAttempt": [],
+        "insufficientMemoryAssignments": 0,
+        "incompleteRasterSchedulingAssignments": 10,
+        "pipelineReporterEntries": {
+          "states": {
+            "STATE_PRESENTED_ALL": 1608,
+            "STATE_PRESENTED_PARTIAL": 1608,
+            "STATE_DROPPED": 13
+          },
+          "hasMissingContent": 90,
+          "note": "Reporter entries overlap for main/compositor work. has_missing_content also includes raster readiness, even when CalculateRenderPasses has no missing tiles; not a count of visibly blank frames."
+        }
+      }
+    },
+    {
+      "evidence": "webkit-reveal-before.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Safari/605.1.15",
+      "cssViewport": [
+        960,
+        540
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 51.42,
+      "frameIntervalMs": {
+        "p50": 17,
+        "p95": 38,
+        "p99": 49,
+        "max": 68
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 33,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--width",
+        "960",
+        "--height",
+        "540",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "12",
+        "--seed",
+        "42",
+        "--no-shot",
+        "--engine",
+        "webkit",
+        "--label",
+        "webkit-reveal-before",
+        "--baseline-dir",
+        "/tmp/spacecraft-render/pre-reveal"
+      ]
+    },
+    {
+      "evidence": "webkit-reveal-after.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Safari/605.1.15",
+      "cssViewport": [
+        960,
+        540
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 51.57,
+      "frameIntervalMs": {
+        "p50": 17,
+        "p95": 36,
+        "p99": 50,
+        "max": 70
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 33,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--width",
+        "960",
+        "--height",
+        "540",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "12",
+        "--seed",
+        "42",
+        "--no-shot",
+        "--engine",
+        "webkit",
+        "--label",
+        "webkit-reveal-after"
+      ]
+    },
+    {
+      "evidence": "firefox-reveal-before.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:156.0) Gecko/20100101 Firefox/156.0",
+      "cssViewport": [
+        960,
+        540
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 8.89,
+      "frameIntervalMs": {
+        "p50": 100,
+        "p95": 183.34,
+        "p99": 216.66,
+        "max": 233.34
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--width",
+        "960",
+        "--height",
+        "540",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "12",
+        "--seed",
+        "42",
+        "--no-shot",
+        "--engine",
+        "firefox",
+        "--label",
+        "firefox-reveal-before",
+        "--baseline-dir",
+        "/tmp/spacecraft-render/pre-reveal"
+      ]
+    },
+    {
+      "evidence": "firefox-reveal-after.json",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:156.0) Gecko/20100101 Firefox/156.0",
+      "cssViewport": [
+        960,
+        540
+      ],
+      "emulatedDpr": 2,
+      "rafFps": 8.71,
+      "frameIntervalMs": {
+        "p50": 100,
+        "p95": 182.48,
+        "p99": 216.68,
+        "max": 233.34
+      },
+      "hiddenStyleWrites": 0,
+      "browserErrors": [],
+      "failedRequests": [],
+      "cancelledRequestCount": 0,
+      "incompleteImageElements": [],
+      "options": [
+        "--playwright",
+        "/Users/shresthkasera/.npm/_npx/9833c18b2d85bc59/node_modules/playwright",
+        "--width",
+        "960",
+        "--height",
+        "540",
+        "--dpr",
+        "2",
+        "--mode",
+        "reveal",
+        "--section",
+        "1",
+        "--seconds",
+        "12",
+        "--seed",
+        "42",
+        "--no-shot",
+        "--engine",
+        "firefox",
+        "--label",
+        "firefox-reveal-after"
+      ]
+    }
+  ],
+  "navigation": {
+    "screenChanges": 48,
+    "durationSecondsApprox": 102,
+    "domCountersAfterEachSixChanges": [
+      {
+        "documents": 1,
+        "nodes": 8621,
+        "jsEventListeners": 591
+      },
+      {
+        "documents": 1,
+        "nodes": 8626,
+        "jsEventListeners": 591
+      },
+      {
+        "documents": 1,
+        "nodes": 8626,
+        "jsEventListeners": 591
+      },
+      {
+        "documents": 1,
+        "nodes": 8626,
+        "jsEventListeners": 591
+      },
+      {
+        "documents": 1,
+        "nodes": 8626,
+        "jsEventListeners": 591
+      },
+      {
+        "documents": 1,
+        "nodes": 8626,
+        "jsEventListeners": 591
+      },
+      {
+        "documents": 1,
+        "nodes": 8626,
+        "jsEventListeners": 591
+      },
+      {
+        "documents": 1,
+        "nodes": 8626,
+        "jsEventListeners": 591
+      }
+    ],
+    "checks": "One active screen, no lingering leaving screen, and zero-sized inactive sea canvases after every transition; sprite animation continued on the active lesson.",
+    "scope": "Bounded DOM/listener counts in this run; not proof of absence of every possible leak or hours-long stability.",
+    "finalCssVerification": {
+      "screenChanges": 12,
+      "domCountersAfterEachSixChanges": [
+        {
+          "documents": 1,
+          "nodes": 8621,
+          "jsEventListeners": 591
+        },
+        {
+          "documents": 1,
+          "nodes": 8626,
+          "jsEventListeners": 591
+        }
+      ],
+      "errors": [],
+      "failedRequests": [],
+      "incompleteImages": []
+    }
+  },
+  "unresolved": [
+    "The broad stable-60-FPS target is not met in the Playwright WebKit and Firefox test builds. Matched scan/reveal tests: WebKit 51.42 -> 51.57 rAF FPS; Firefox 8.89 -> 8.71. This CSS fix does not establish an FPS improvement for those engines.",
+    "The supplied original rectangular artifact was not independently reproduced in baseline zoom tests; the user reports it is now absent. The post-scan missing-tile failure was separately reproduced and fixed as described above.",
+    "One transient attempted draw still lacked a tile in the matched fixed Edge reveal. Pipeline raster-readiness flags also remain; no claim of zero dropped frames or universal absence of missing content is made.",
+    "Direct total GPU VRAM, GPU utilization percentage and hours-long gameplay were not measured."
+  ],
+  "reproduce": {
+    "requirements": "Node and Playwright; pass --playwright /path/to/playwright if it is not locally installed. Install the matching WebKit/Firefox builds with the Playwright CLI when testing those engines.",
+    "camera": "node tools/render-probe.cjs --mode camera --engine msedge --label camera",
+    "zoomTrace": "node tools/render-probe.cjs --mode transit --engine msedge --width 1960 --height 1100 --dpr 2 --seconds 12 --trace --categories devtools.timeline,cc,gpu,viz --label zoom",
+    "visibleZoom": "node tools/render-probe.cjs --mode transit --engine msedge --headed --width 1260 --height 700 --dpr 2 --filmstrip --seconds 13 --label visible-zoom",
+    "resize": "node tools/render-probe.cjs --mode resize --sea-resources --engine msedge --width 960 --height 540 --dpr 2 --seconds 1 --label resize",
+    "navigation": "node tools/render-probe.cjs --mode navigation --cycles 8 --engine msedge --seconds 2 --label navigation",
+    "baseline": "Copy original js/animation.js, js/learn-quad.js and js/water.js from commit 5cc0074 into a separate directory retaining js/ paths; pass --baseline-dir that-directory. For the isolated camera fixture pass --animation path/to/original/animation.js --expect-before. Old resize behavior requires --expect-before.",
+    "artifactLocation": "Default /tmp/spacecraft-render; use --output to preserve elsewhere. .trace.json files open in Chromium DevTools Performance.",
+    "revealTrace": "node tools/render-probe.cjs --mode reveal --section 1 --engine msedge --width 1960 --height 1100 --dpr 2 --seed 42 --seconds 12 --trace --categories devtools.timeline,cc,gpu,viz --label reveal",
+    "motionPreservation": "node tools/render-probe.cjs --mode motion --engine msedge --baseline-dir /path/to/original-css-parent --label motion",
+    "landing": "node tools/render-probe.cjs --mode landing --section 7 --land 36 --engine msedge --headed --width 1260 --height 700 --filmstrip --seconds 12 --label landing",
+    "revealBaseline": "Put original css/style.css and css/animation.css from commit 5cc0074 in a separate directory retaining css/ paths, then pass --baseline-dir that-directory to the same reveal command.",
+    "tour": "node tools/render-probe.cjs --mode tour --section 1 --engine msedge --seed 42 --seconds 3 --label tour"
+  },
+  "finalCameraRegressions": {
+    "chrome": {
+      "interrupted": {
+        "s": 0.7,
+        "x": 90,
+        "y": 65
+      },
+      "plateStarts": [
+        210.43,
+        210.43
+      ],
+      "activeAfterOtherReset": [],
+      "errors": []
+    }
+  },
+  "userFeedback": {
+    "beforeLatestFix": "User reports zoom rectangles are gone, but island or spacecraft images look incomplete and animation lags after scanning.",
+    "afterLatestFix": "Islands and spacecraft render fully; motion is smooth",
+    "confirmedDate": "2026-10-15"
+  },
+  "visualChecks": {
+    "headedEdgeReveal": {
+      "viewport": [
+        1260,
+        700
+      ],
+      "framesCaptured": 139,
+      "artifact": "/tmp/spacecraft-render/reveal-fixed-visible-contact.jpg"
+    },
+    "headedEdgeSpacecraftArrivalAndSuccessfulSquareLanding": {
+      "framesCaptured": 277,
+      "artifact": "/tmp/spacecraft-render/landing-verified-contact.jpg"
+    },
+    "portraitEdge": {
+      "viewport": [
+        390,
+        844
+      ],
+      "artifact": "/tmp/spacecraft-render/edge-portrait-reveal.png"
+    },
+    "scope": "Representative frames inspected; no visible rectangular corruption or incomplete islands/craft in these captures. This is not proof for every possible device or frame."
+  },
+  "updatedDate": "2026-10-15"
+}

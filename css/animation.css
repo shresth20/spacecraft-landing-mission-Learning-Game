@@ -86,32 +86,29 @@
    island sliding up the screen would be an island moving north, not
    an island surfacing.
 
-   The blur/brightness ramp is what sells the depth, and it has to
-   live in the keyframe rather than on a wrapper so it runs on the
-   same element and the same clock as the scale. Its 100% frame is a
-   copy of the resting filter on `.zone__img`: an animation with
-   `forwards` outranks the declaration it came from, so the last
+   Keep the blur/brightness ramp on the same element and clock, but
+   in a separate animation: a pixel-moving filter can prevent the
+   entire animation (including its scale) from being composited.
+   The paired animations use identical durations, easings and start
+   times. The focus animation's 100% frame is a copy of the resting
+   filter: `forwards` outranks the declaration it came from, so the last
    frame has to BE that declaration or the shape would jump the
    moment the rise lands. */
 @keyframes zoneRise {
   0% {
     opacity: 0;
     transform: scale(.34);
-    filter: blur(9px) brightness(.34) saturate(.5);
   }
   18% {
     opacity: .5;
     transform: scale(.56);
-    filter: blur(6px) brightness(.5) saturate(.62);
   }
   58% {
     opacity: 1;
     transform: scale(1.055);
-    filter: blur(1.4px) brightness(.94) saturate(.96);
   }
   80% {
     transform: scale(.985);
-    filter: none;
   }
   92% {
     transform: scale(1.008);
@@ -119,6 +116,15 @@
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes zoneFocus {
+  0%  { filter: blur(9px) brightness(.34) saturate(.5); }
+  18% { filter: blur(6px) brightness(.5) saturate(.62); }
+  58% { filter: blur(1.4px) brightness(.94) saturate(.96); }
+  80% { filter: none; }
+  100% {
     filter: drop-shadow(0 0 15px rgba(2, 26, 52, .72))
              drop-shadow(0 0 26px rgba(120, 210, 255, .26));
   }
@@ -247,13 +253,19 @@
 /* The pads breaching, gentler than the survey screen's — these are
    being offered to the player, not discovered. Same overhead camera,
    so the same rule holds: they grow, they do not rise. The last
-   frame restates `.pad__img`'s resting shadow, for the reason set
-   out over zoneRise. */
+   frame of padFocus restates `.pad__img`'s resting shadow, for the
+   reason set out over zoneRise. */
 @keyframes padRise {
-  0%   { opacity: 0; transform: scale(.72); filter: blur(6px) brightness(.5); }
-  60%  { opacity: 1; transform: scale(1.04); filter: none; }
+  0%   { opacity: 0; transform: scale(.72); }
+  60%  { opacity: 1; transform: scale(1.04); }
   82%  { transform: scale(.994); }
-  100% { opacity: 1; transform: none; filter: drop-shadow(0 0 20px rgba(2, 26, 52, .6)); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes padFocus {
+  0%   { filter: blur(6px) brightness(.5); }
+  60%  { filter: none; }
+  100% { filter: drop-shadow(0 0 20px rgba(2, 26, 52, .6)); }
 }
 
 /* The verdict traced on the landing surface. It snaps on, gives one

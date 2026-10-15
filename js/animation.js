@@ -302,8 +302,8 @@
 
      A flight's tail pins the lens, and a player who jumps screens
      mid-flight would otherwise have that pin land on a camera the
-     reset has re-parked. Every set and every reset bumps camGen;
-     the tail checks the generation it was started under, exactly
+     reset has re-parked. Every camera command advances that screen's
+     generation; the tail checks the generation it started under, exactly
      as sequence() in js/script.js checks runId.
      ============================================================ */
 
@@ -313,7 +313,16 @@
      Animations API does not come back */
   var CAM_ID = 'geo-cam';
 
-  var camGen = 0;
+  /* A cancelled flight settles asynchronously. Only the newest command
+     for THIS screen may park its lens; another screen's reset must not
+     invalidate it, and an interrupted flight must not park over its
+     replacement. */
+  var camGenerations = new WeakMap();
+  function camNext(screen) {
+    var gen = (camGenerations.get(screen) || 0) + 1;
+    camGenerations.set(screen, gen);
+    return gen;
+  }
 
   function camVar(screen, name, fallback) {
     var v = parseFloat(global.getComputedStyle(screen).getPropertyValue(name));
@@ -427,11 +436,12 @@
      does: finishing, being cancelled, or the clock running out --
      so a browser that never fires onfinish cannot strand the
      script. `frames` carry their own offsets and easings. */
-  function camAnim(el, frames, ms) {
+  function camAnim(el, frames, ms, startTime) {
     if (!el || !el.animate) return wait(ms);
 
     return new Promise(function (resolve) {
       var anim = el.animate(frames, { duration: ms, fill: 'forwards' });
+      if (startTime != null) anim.startTime = startTime;
       anim.id = CAM_ID;
       /* A finished fill-forwards animation that a later one fully
          covers is "replaceable", and the browser may drop it from
@@ -449,7 +459,7 @@
   /* Park the lens at `st`, now, with nothing running. */
   function camSet(screen, st) {
     if (!screen || !st) return;
-    camGen++;
+    camNext(screen);
     var v = camVars(screen);
     camPlates(screen).forEach(function (p) {
       camStop(p.el);
@@ -473,7 +483,7 @@
      inline transform, the world at identity. */
   function camReset(screen) {
     if (!screen) return;
-    camGen++;
+    camNext(screen);
 
     camPlates(screen).forEach(function (p) {
       camStop(p.el);
@@ -496,7 +506,7 @@
     opts = opts || {};
     if (!screen || !keys || !keys.length) return wait(0);
 
-    var gen = camGen;
+    var gen = camNext(screen);
     var ms = opts.ms || 3400;
     var v = camVars(screen);
     var ease = opts.easing || 'cubic-bezier(.46, .02, .16, 1)';
@@ -524,6 +534,7 @@
 
     var last = frames[frames.length - 1].st;
 
+    var startTime = doc.timeline ? doc.timeline.currentTime : null;
     var jobs = camPlates(screen).map(function (p) {
       camStop(p.el);
       p.el.style.transformOrigin = '0 0';
@@ -534,12 +545,12 @@
         val.easing = f.easing;
         return val;
       });
-      return camAnim(p.el, kfs, ms);
+      return camAnim(p.el, kfs, ms, startTime);
     });
 
     return Promise.all(jobs).then(function () {
       /* a jump mid-flight re-parks the lens before this lands */
-      if (gen !== camGen) return;
+      if (gen !== camGenerations.get(screen)) return;
       camSet(screen, last);
     });
   }
@@ -557,13 +568,15 @@
   function camLoiter(screen, st, o) {
     o = o || {};
     if (!screen || !st) return;
+    camNext(screen);
     var to = { s: st.s, x: st.x + (o.dx || 1.6), y: st.y + (o.dy || 1.0) };
     var v = camVars(screen);
+    var startTime = doc.timeline ? doc.timeline.currentTime : null;
     camPlates(screen).forEach(function (p) {
       camStop(p.el);
       var a = valueOf(p, st, v); a.offset = 0; a.easing = 'cubic-bezier(.42, 0, .58, 1)';
       var b = valueOf(p, to, v); b.offset = 1;
-      camAnim(p.el, [a, b], o.ms || 17000);
+      camAnim(p.el, [a, b], o.ms || 17000, startTime);
     });
   }
 

@@ -851,7 +851,11 @@ button { font: inherit; color: inherit; }
   z-index: 3;
 }
 
-.islet.is-up .islet__img    { opacity: 1; animation: zoneRise 1.5s cubic-bezier(.18, .9, .28, 1) forwards; }
+.islet.is-up .islet__img    {
+  opacity: 1;
+  animation: zoneRise 1.5s cubic-bezier(.18, .9, .28, 1) forwards,
+             zoneFocus 1.5s cubic-bezier(.18, .9, .28, 1) forwards;
+}
 .islet.is-up .islet__wake   { animation: zoneWake 1.6s ease-out forwards; }
 .islet.is-up .islet__splash { animation: zoneSplash 1.1s ease-out forwards; }
 
@@ -1600,7 +1604,8 @@ button { font: inherit; color: inherit; }
 
 .pad.is-up .pad__img {
   opacity: 1;
-  animation: padRise 1.15s cubic-bezier(.2, .9, .3, 1) forwards;
+  animation: padRise 1.15s cubic-bezier(.2, .9, .3, 1) forwards,
+             padFocus 1.15s cubic-bezier(.2, .9, .3, 1) forwards;
 }
 
 /* the printed area, sat in the middle of the painted surface */

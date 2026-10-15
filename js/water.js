@@ -1012,6 +1012,20 @@
   var scTiles = Object.create(null);
   var scImages = Object.create(null);
   var scRunning = false;
+  var scViewport = '';
+
+  /* Pattern dimensions depend on viewport lengths and DPR. Keeping every
+     previous size alive retains its canvas backing store after a resize.
+     Drop those pixels before rebuilding, and when no sea is being drawn. */
+  function scRelease() {
+    Object.keys(scTiles).forEach(function (key) {
+      scTiles[key].width = 0;
+      scTiles[key].height = 0;
+    });
+    scTiles = Object.create(null);
+    if (scScratch) { scScratch.width = 0; scScratch.height = 0; }
+    scViewport = '';
+  }
 
   function scSplit(str) {
     var out = [], depth = 0, cur = '';
@@ -1372,6 +1386,11 @@
   }
 
   function scFrame() {
+    var viewport = global.innerWidth + 'x' + global.innerHeight + '@' + scDpr();
+    if (viewport !== scViewport) {
+      scRelease();
+      scViewport = viewport;
+    }
     var any = false;
     scScreens.forEach(function (entry) {
       if (entry.dead) return;
@@ -1398,7 +1417,10 @@
        every refresh for nothing; scWake() restarts it the moment a sea
        screen comes in. */
     if (any) global.requestAnimationFrame(scFrame);
-    else scRunning = false;
+    else {
+      scRelease();
+      scRunning = false;
+    }
   }
 
   function scWake() {

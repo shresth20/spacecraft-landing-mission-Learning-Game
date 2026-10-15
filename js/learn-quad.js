@@ -1051,6 +1051,11 @@
     function tick(t) {
       requestAnimationFrame(tick);
       if (!step) return;
+      /* The lesson shares the document with the mission. Its fifteen
+         sprite nodes must not invalidate styles on every sprite frame
+         while another screen is playing. Keep the clock parked, just
+         as the first lesson's player does. */
+      if (!SCREEN.matches('.is-active, .is-leaving')) { lastT = t; return; }
       /* Sizes are re-read at every clip boundary, but an idle loop can hold
          for minutes; a slow sweep catches a sprite resized or made ready in
          between. Off the hot path: a couple of layout reads a second. */
